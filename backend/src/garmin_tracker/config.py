@@ -35,9 +35,19 @@ class Settings(BaseSettings):
     backfill_days: int = 365
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Built React app directory (Docker / Fly sets this to /app/frontend/dist)
+    static_dir: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def static_path(self) -> Path | None:
+        if not self.static_dir:
+            return None
+        p = Path(self.static_dir)
+        return p if p.is_dir() else None
 
 
 @lru_cache

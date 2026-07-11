@@ -6,10 +6,14 @@
 [tools]
 node = "24"
 uv = "0.11"
+flyctl = "0.4"
 
 [env]
 # Consistent local ports / API URL for the SPA
 VITE_API_URL = "http://127.0.0.1:8000"
+# Fly.io app name (override: FLY_APP=other-name mise run fly:deploy)
+FLY_APP = "garmin-activity-tracker"
+FLY_REGION = "dfw"
 _.file = [
   # Optional local overrides (not committed)
   "{{config_root}}/backend/.env",
@@ -169,3 +173,89 @@ set -euo pipefail
 echo "$(pwd)/data/garmin_tracker.db"
 ls -la data/garmin_tracker.db 2>/dev/null || echo "(db not created yet — start the backend once)"
 """
+
+# ---------------------------------------------------------------------------
+# Fly.io (app: $FLY_APP, region: $FLY_REGION)
+# ---------------------------------------------------------------------------
+
+[tasks."fly:auth"]
+description = "Log in to Fly.io (browser)"
+run = "fly auth login"
+
+[tasks."fly:whoami"]
+description = "Show current Fly user"
+run = "fly auth whoami"
+
+[tasks."fly:status"]
+description = "App status, machines, image"
+run = "fly status -a \"$FLY_APP\""
+
+[tasks."fly:logs"]
+description = "Tail Fly app logs"
+run = "fly logs -a \"$FLY_APP\""
+
+[tasks."fly:open"]
+description = "Open app URL in browser"
+run = "fly open -a \"$FLY_APP\""
+
+[tasks."fly:deploy"]
+description = "Deploy to Fly (remote build, no cache)"
+run = "fly deploy -a \"$FLY_APP\" --remote-only --no-cache"
+
+[tasks."fly:deploy:quick"]
+description = "Deploy to Fly (remote build, use cache)"
+run = "fly deploy -a \"$FLY_APP\" --remote-only"
+
+[tasks."fly:secrets:set"]
+description = "Generate and set SECRET_KEY + TOKEN_ENCRYPTION_KEY on Fly (prints values once)"
+dir = "{{config_root}}/backend"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+SECRET=$(uv run python -c 'import secrets; print(secrets.token_urlsafe(32))')
+FERNET=$(uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')
+echo "Saving these locally is recommended (password manager / backend/.env):"
+echo "SECRET_KEY=$SECRET"
+echo "TOKEN_ENCRYPTION_KEY=$FERNET"
+echo ""
+fly secrets set \
+  SECRET_KEY="$SECRET" \
+  TOKEN_ENCRYPTION_KEY="$FERNET" \
+  -a "$FLY_APP"
+echo "Secrets staged/set on $FLY_APP. Deploy with: mise run fly:deploy"
+"""
+
+[tasks."fly:secrets:list"]
+description = "List Fly secret names (values never shown)"
+run = "fly secrets list -a \"$FLY_APP\""
+
+[tasks."fly:volume:create"]
+description = "Create 1GB SQLite volume in FLY_REGION (one-time)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+fly volumes create garmin_data --region "$FLY_REGION" --size 1 -a "$FLY_APP"
+"""
+
+[tasks."fly:volumes"]
+description = "List Fly volumes for the app"
+run = "fly volumes list -a \"$FLY_APP\""
+
+[tasks."fly:ssh"]
+description = "SSH console into the Fly machine"
+run = "fly ssh console -a \"$FLY_APP\""
+
+[tasks."fly:health"]
+description = "curl /api/health on the deployed app"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+url="https://${FLY_APP}.fly.dev/api/health"
+echo "GET $url"
+curl -fsS "$url"
+echo
+"""
+
+[tasks."fly:releases"]
+description = "List recent Fly releases"
+run = "fly releases -a \"$FLY_APP\""

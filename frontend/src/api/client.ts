@@ -1,4 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000'
+// Same-origin in production (Fly / static from API). Local dev defaults to API port.
+const API_BASE =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '')
 
 function getToken(): string | null {
   return localStorage.getItem('token')

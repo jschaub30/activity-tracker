@@ -77,6 +77,37 @@ App: http://127.0.0.1:5173
 - **Real Garmin Connect login** (MFA supported), encrypted session tokens  
 - **Sync**: 365-day first backfill, then incremental; activities land in **Review**  
 
+## Deploy on Fly.io
+
+See **[docs/deploy-fly.md](docs/deploy-fly.md)** for the full guide.
+
+With **mise** (from repo root after `mise install`):
+
+```bash
+mise run fly:auth              # browser login (once)
+# one-time:
+fly apps create garmin-activity-tracker   # if not created
+mise run fly:volume:create
+mise run fly:secrets:set       # prints keys once — save them!
+mise run fly:deploy
+mise run fly:open
+mise run fly:health
+mise run fly:logs
+```
+
+| Task | Purpose |
+|------|---------|
+| `mise run fly:deploy` | Deploy (remote, no cache) |
+| `mise run fly:deploy:quick` | Deploy (cached layers) |
+| `mise run fly:status` | Machines / image |
+| `mise run fly:logs` | Tail logs |
+| `mise run fly:ssh` | SSH console |
+| `mise run fly:secrets:list` | Secret names only |
+
+App name / region: `FLY_APP` and `FLY_REGION` in `mise.toml` (defaults: `garmin-activity-tracker`, `dfw`).
+
+Single machine serves API + SPA; SQLite on a Fly volume at `/data`.
+
 ## How to download your Garmin data
 
 1. `mise run dev` (or backend + frontend separately)

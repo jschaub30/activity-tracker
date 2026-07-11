@@ -1,0 +1,14 @@
+**/.git
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/dist
+**/*.db
+**/.env
+**/.DS_Store
+backend/data/*.db
+frontend/dist
+*.md
+!backend/README.md
