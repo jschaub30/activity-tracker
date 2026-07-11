@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ActivityPage } from './pages/ActivityPage'
+import { ChartsPage } from './pages/ChartsPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ReviewPage } from './pages/ReviewPage'
@@ -36,6 +37,14 @@ export default function App() {
             element={
               <Protected>
                 <WeekDetailPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/charts"
+            element={
+              <Protected>
+                <ChartsPage />
               </Protected>
             }
           />

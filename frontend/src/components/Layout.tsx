@@ -13,6 +13,7 @@ export function Layout() {
         {user && (
           <nav className="nav">
             <NavLink to="/">Week</NavLink>
+            <NavLink to="/charts">Charts</NavLink>
             <NavLink to="/review">Review</NavLink>
             <NavLink to="/settings">Settings</NavLink>
             <span className="user-email">{user.email}</span>
