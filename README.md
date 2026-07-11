@@ -54,6 +54,7 @@ mise run secrets    # optional: generate SECRET_KEY / TOKEN_ENCRYPTION_KEY
 | `mise run backend` | FastAPI with reload → http://127.0.0.1:8000 |
 | `mise run frontend` | Vite dev server → http://127.0.0.1:5173 |
 | `mise run dev` | Backend **and** frontend in parallel |
+| `mise run stop:dev` | Stop local API (:8000) and UI (:5173) |
 | `mise run test` | Backend pytest |
 | `mise run lint` | ruff + oxlint |
 | `mise run build` | Frontend production build |
