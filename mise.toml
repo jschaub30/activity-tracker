@@ -1,0 +1,171 @@
+# https://mise.jdx.dev/
+# Install tools:  mise install
+# List tasks:     mise tasks
+# Run a task:     mise run <name>
+
+[tools]
+node = "24"
+uv = "0.11"
+
+[env]
+# Consistent local ports / API URL for the SPA
+VITE_API_URL = "http://127.0.0.1:8000"
+_.file = [
+  # Optional local overrides (not committed)
+  "{{config_root}}/backend/.env",
+]
+
+[settings]
+# Allow this project's mise.toml without interactive trust prompts in CI-like envs
+experimental = true
+
+# ---------------------------------------------------------------------------
+# Setup
+# ---------------------------------------------------------------------------
+
+[tasks.install]
+description = "Install backend (uv) + frontend (npm) dependencies"
+run = [
+  "mise run install:backend",
+  "mise run install:frontend",
+]
+
+[tasks."install:backend"]
+description = "uv sync backend deps (create .env from example if missing)"
+dir = "{{config_root}}/backend"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ ! -f .env ]]; then
+  cp .env.example .env
+  echo "Created backend/.env from .env.example — set SECRET_KEY / TOKEN_ENCRYPTION_KEY"
+fi
+uv sync
+"""
+
+[tasks."install:frontend"]
+description = "npm install frontend deps"
+dir = "{{config_root}}/frontend"
+run = "npm install"
+
+[tasks.setup]
+description = "Alias for install"
+depends = ["install"]
+
+# ---------------------------------------------------------------------------
+# Dev servers
+# ---------------------------------------------------------------------------
+
+[tasks.backend]
+description = "Start FastAPI with reload (http://127.0.0.1:8000)"
+dir = "{{config_root}}/backend"
+run = "uv run uvicorn garmin_tracker.main:app --reload --host 127.0.0.1 --port 8000"
+
+[tasks.api]
+description = "Alias for backend"
+depends = ["backend"]
+
+[tasks.frontend]
+description = "Start Vite dev server (http://localhost:5173)"
+dir = "{{config_root}}/frontend"
+run = "npm run dev -- --host 127.0.0.1 --port 5173"
+
+[tasks.ui]
+description = "Alias for frontend"
+depends = ["frontend"]
+
+[tasks.dev]
+description = "Start backend + frontend in parallel"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+trap 'kill 0' EXIT
+mise run backend &
+mise run frontend &
+wait
+"""
+
+# ---------------------------------------------------------------------------
+# Quality / build
+# ---------------------------------------------------------------------------
+
+[tasks.test]
+description = "Run backend pytest"
+dir = "{{config_root}}/backend"
+run = "uv run pytest -q"
+
+[tasks.lint]
+description = "Lint backend (ruff) + frontend (oxlint)"
+run = [
+  "mise run lint:backend",
+  "mise run lint:frontend",
+]
+
+[tasks."lint:backend"]
+description = "ruff check backend"
+dir = "{{config_root}}/backend"
+run = "uv run ruff check src tests"
+
+[tasks."lint:frontend"]
+description = "oxlint frontend"
+dir = "{{config_root}}/frontend"
+run = "npm run lint"
+
+[tasks.build]
+description = "Production build of the frontend"
+dir = "{{config_root}}/frontend"
+run = "npm run build"
+
+[tasks.check]
+description = "test + lint + frontend build"
+run = [
+  "mise run test",
+  "mise run lint",
+  "mise run build",
+]
+
+# ---------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------
+
+[tasks.docs]
+description = "Open API OpenAPI docs in the browser (API must be running)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+url="http://127.0.0.1:8000/docs"
+if command -v open >/dev/null 2>&1; then
+  open "$url"
+else
+  echo "$url"
+fi
+"""
+
+[tasks.secrets]
+description = "Print generated SECRET_KEY and TOKEN_ENCRYPTION_KEY for .env"
+dir = "{{config_root}}/backend"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+uv run python - <<'PY'
+import secrets
+from cryptography.fernet import Fernet
+print("SECRET_KEY=" + secrets.token_urlsafe(32))
+print("TOKEN_ENCRYPTION_KEY=" + Fernet.generate_key().decode())
+PY
+"""
+
+[tasks."shell:backend"]
+description = "Python REPL with backend package on path"
+dir = "{{config_root}}/backend"
+run = "uv run python"
+
+[tasks."db:path"]
+description = "Show SQLite database path"
+dir = "{{config_root}}/backend"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+echo "$(pwd)/data/garmin_tracker.db"
+ls -la data/garmin_tracker.db 2>/dev/null || echo "(db not created yet — start the backend once)"
+"""

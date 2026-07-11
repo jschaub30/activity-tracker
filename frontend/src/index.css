@@ -1,0 +1,470 @@
+:root {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  color: #e8eef5;
+  background: #0f1419;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --bg: #0f1419;
+  --panel: #1a2332;
+  --border: #2a3a4f;
+  --accent: #3d9cf0;
+  --accent-dim: #2563a8;
+  --muted: #8b9cb3;
+  --danger: #f07178;
+  --ok: #7fd99a;
+  --run: #3d9cf0;
+  --hike: #7fd99a;
+  --stair: #f0a06a;
+  --cardio: #e6b450;
+  --strength: #c792ea;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at top, #1a2740 0%, var(--bg) 55%);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(15, 20, 25, 0.85);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+}
+.nav a.active {
+  color: #fff;
+}
+
+.user-email {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.linkish {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.main {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 1.5rem;
+  flex: 1;
+}
+
+h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.6rem;
+}
+h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.85rem;
+}
+.error {
+  color: var(--danger);
+}
+.ok {
+  color: var(--ok);
+  margin-left: 0.5rem;
+}
+
+.banner {
+  background: #243044;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+button {
+  background: var(--panel);
+  color: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+}
+button:hover {
+  border-color: var(--accent);
+}
+button.primary {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+input,
+select {
+  background: #0d1218;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.55rem 0.7rem;
+}
+
+.auth-card {
+  max-width: 400px;
+  margin: 3rem auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.75rem;
+}
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.week-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.week-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.weeks-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+.weeks-list-table th,
+.weeks-list-table td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.weeks-list-table th {
+  background: #121a26;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.weeks-list-table th.num,
+.weeks-list-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.weeks-list-table tbody tr:hover {
+  background: rgba(61, 156, 240, 0.08);
+}
+.weeks-list-table tbody tr.current-week {
+  background: rgba(61, 156, 240, 0.1);
+}
+.weeks-list-table tfoot th {
+  background: #152033;
+  color: #fff;
+  border-bottom: none;
+  font-size: 0.95rem;
+}
+.week-link {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.week-link:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+.badge-current {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(61, 156, 240, 0.2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.week-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+.week-table th,
+.week-table td {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  padding: 0.65rem 0.55rem;
+  width: 11%;
+}
+.week-table th:last-child,
+.week-table td:last-child {
+  border-right: none;
+}
+.week-table thead th {
+  background: #121a26;
+  font-weight: 600;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.week-table.stacked-weeks .week-label-col {
+  width: 9%;
+  min-width: 7.5rem;
+  background: #121a26;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.week-table.stacked-weeks tbody .week-label-col {
+  background: #152033;
+  vertical-align: middle;
+}
+.week-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+.day-cell-date {
+  margin-bottom: 0.35rem;
+}
+.th-date {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.totals-col {
+  background: #152033;
+  width: 10% !important;
+}
+.total-num {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.week-table tbody tr.current-week td {
+  background: rgba(61, 156, 240, 0.06);
+}
+.week-table tbody tr.current-week .totals-col,
+.week-table tbody tr.current-week .week-label-col {
+  background: #1a2a42;
+}
+.empty {
+  color: var(--muted);
+}
+
+.act-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.act-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  color: inherit;
+  text-decoration: none;
+  padding: 0.35rem;
+  border-radius: 6px;
+}
+.act-list a:hover {
+  background: rgba(61, 156, 240, 0.12);
+  text-decoration: none;
+}
+.act-name {
+  font-size: 0.9rem;
+}
+.act-stats {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  width: fit-content;
+  background: #2a3a4f;
+}
+.badge.run {
+  background: rgba(61, 156, 240, 0.25);
+  color: var(--run);
+}
+.badge.hike {
+  background: rgba(127, 217, 154, 0.2);
+  color: var(--hike);
+}
+.badge.stair {
+  background: rgba(240, 160, 106, 0.22);
+  color: var(--stair);
+}
+.badge.cardio {
+  background: rgba(230, 180, 80, 0.2);
+  color: var(--cardio);
+}
+.badge.strength {
+  background: rgba(199, 146, 234, 0.2);
+  color: var(--strength);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.data-table th {
+  background: #121a26;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin: 1rem 0;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  max-width: 360px;
+}
+.plain {
+  padding-left: 1.1rem;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+.stat-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.relabel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 360px;
+}
