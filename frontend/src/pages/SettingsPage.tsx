@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
-import type { GarminStatus, ShareLink, SyncStatus } from '../types'
+import type { DeleteDataResult, GarminStatus, ShareLink, SyncStatus } from '../types'
 
 interface ConnectResult extends GarminStatus {
   needs_mfa?: boolean
@@ -165,6 +165,38 @@ export function SettingsPage() {
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not revoke link')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDeleteAllData() {
+    const confirmed = window.confirm(
+      'Delete all of your activity data?\n\n' +
+        'This removes activities and sync history. Your Garmin connection, share links, ' +
+        'and account login are kept.\n\n' +
+        'This cannot be undone.',
+    )
+    if (!confirmed) return
+
+    const typed = window.prompt('Type DELETE to confirm permanently wiping your activity data:')
+    if (typed !== 'DELETE') {
+      setMessage('Delete cancelled — confirmation text did not match.')
+      return
+    }
+
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await api<DeleteDataResult>('/api/account/data', { method: 'DELETE' })
+      setMessage(
+        `${res.message} Removed ${res.activities_deleted} activities and ` +
+          `${res.sync_runs_deleted} sync runs.`,
+      )
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete data')
     } finally {
       setBusy(false)
     }
@@ -356,6 +388,28 @@ export function SettingsPage() {
           After a successful sync, open <strong>Review</strong> to confirm
           categories. Confirmed runs, hikes, and stairs appear on the week grid.
         </p>
+      </section>
+
+      <section className="card danger-zone">
+        <h2>Danger zone</h2>
+        <p className="muted small">
+          Permanently delete all activities and sync history. Your Garmin
+          connection, share links, and account login are kept. This cannot be
+          undone.
+        </p>
+        <button
+          type="button"
+          className="danger"
+          onClick={() => void onDeleteAllData()}
+          disabled={busy || !!sync?.is_running}
+        >
+          {busy ? 'Working…' : 'Delete all data'}
+        </button>
+        {sync?.is_running && (
+          <p className="muted small" style={{ marginTop: '0.5rem' }}>
+            Wait for the current sync to finish before deleting data.
+          </p>
+        )}
       </section>
     </div>
   )

@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from garmin_tracker.config import get_settings
 from garmin_tracker.db import init_db
-from garmin_tracker.routers import activities, auth, garmin, public, share, sync, weeks
+from garmin_tracker.routers import account, activities, auth, garmin, public, share, sync, weeks
 
 
 @asynccontextmanager
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(auth.router)
+    app.include_router(account.router)
     app.include_router(garmin.router)
     app.include_router(sync.router)
     app.include_router(activities.router)

@@ -178,3 +178,12 @@ class PublicShareMeta(BaseModel):
     timezone: str
     # Non-identifying display name (email local-part only)
     owner_display: str
+
+
+# ----- Account -----
+
+
+class DeleteDataOut(BaseModel):
+    activities_deleted: int
+    sync_runs_deleted: int
+    message: str

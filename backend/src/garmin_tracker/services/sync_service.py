@@ -75,9 +75,19 @@ class SyncService:
         self.session.refresh(run)
         return run
 
+    def _has_activities(self) -> bool:
+        stmt = select(Activity.id).where(Activity.user_id == self.user.id).limit(1)
+        return self.session.exec(stmt).first() is not None
+
     def _compute_range(self, garmin: GarminSession) -> tuple[date, date]:
+        """Choose fetch window: full backfill vs short incremental overlap.
+
+        Incremental sync only runs when we already have activities *and* a prior
+        successful sync. Otherwise (first connect, or after data wipe) we pull
+        the full ``backfill_days`` window (default 365).
+        """
         today = datetime.now(timezone.utc).date()
-        if garmin.last_success_at:
+        if garmin.last_success_at and self._has_activities():
             last = garmin.last_success_at
             if last.tzinfo is None:
                 last = last.replace(tzinfo=timezone.utc)

@@ -154,9 +154,24 @@ button.primary {
   background: var(--accent-dim);
   border-color: var(--accent);
 }
+button.danger {
+  background: #3a1f24;
+  border-color: var(--danger);
+  color: #ffd6d9;
+}
+button.danger:hover {
+  border-color: #ff9aa2;
+}
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.danger-zone {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+.danger-zone h2 {
+  color: var(--danger);
 }
 
 label {

@@ -104,3 +104,9 @@ export interface ShareLink {
   revoked_at: string | null
   path: string
 }
+
+export interface DeleteDataResult {
+  activities_deleted: number
+  sync_runs_deleted: number
+  message: string
+}
