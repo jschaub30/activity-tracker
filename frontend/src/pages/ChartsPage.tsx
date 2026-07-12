@@ -84,17 +84,29 @@ function MetricChart({
   )
 }
 
-export function ChartsPage() {
+export function ChartsPage({
+  shareToken,
+  titleSuffix,
+}: {
+  shareToken?: string
+  titleSuffix?: string
+} = {}) {
+  const readOnly = Boolean(shareToken)
   const [data, setData] = useState<WeeksList | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const weeksUrl = shareToken
+    ? `/api/public/${shareToken}/weeks?count=52`
+    : '/api/weeks?count=52'
+
   useEffect(() => {
-    api<WeeksList>('/api/weeks?count=52')
+    setLoading(true)
+    api<WeeksList>(weeksUrl)
       .then(setData)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [weeksUrl])
 
   const points = useMemo<ChartPoint[]>(() => {
     if (!data) return []
@@ -129,10 +141,11 @@ export function ChartsPage() {
     <div className="charts-page">
       <div className="week-header">
         <div>
-          <h1>Year charts</h1>
+          <h1>Year charts{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
           <p className="muted">
             Weekly totals · past 52 weeks · {data.timezone} · runs, hikes &amp;
             stairs
+            {readOnly ? ' · read-only' : ''}
           </p>
         </div>
       </div>
@@ -179,7 +192,8 @@ export function ChartsPage() {
 
       <p className="muted small">
         Same confirmed activities as the{' '}
-        <Link to="/">weekly summary</Link>. Empty weeks plot as zero.
+        <Link to={shareToken ? `/s/${shareToken}` : '/'}>weekly summary</Link>.
+        Empty weeks plot as zero.
       </p>
     </div>
   )

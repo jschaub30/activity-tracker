@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ReviewPage } from './pages/ReviewPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { SharedViewPage } from './pages/SharedViewPage'
 import { WeekDetailPage } from './pages/WeekDetailPage'
 import { WeekPage } from './pages/WeekPage'
 
@@ -24,6 +25,9 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          {/* Public read-only share views (no login) */}
+          <Route path="/s/:token" element={<SharedViewPage mode="weeks" />} />
+          <Route path="/s/:token/charts" element={<SharedViewPage mode="charts" />} />
           <Route
             path="/"
             element={

@@ -150,3 +150,31 @@ class SyncStatusOut(BaseModel):
 class SyncStartOut(BaseModel):
     message: str
     sync_run_id: str
+
+
+# ----- Share links -----
+
+
+class ShareLinkCreate(BaseModel):
+    label: Optional[str] = Field(default=None, max_length=120)
+
+
+class ShareLinkOut(BaseModel):
+    id: str
+    token: str
+    label: Optional[str] = None
+    created_at: datetime
+    revoked_at: Optional[datetime] = None
+    # Absolute path on the SPA (frontend prefixes origin)
+    path: str
+
+    model_config = {"from_attributes": True}
+
+
+class PublicShareMeta(BaseModel):
+    """Minimal public metadata for a valid share token."""
+
+    label: Optional[str] = None
+    timezone: str
+    # Non-identifying display name (email local-part only)
+    owner_display: str

@@ -95,3 +95,12 @@ export interface SyncStatus {
   error?: string | null
   is_running: boolean
 }
+
+export interface ShareLink {
+  id: string
+  token: string
+  label: string | null
+  created_at: string
+  revoked_at: string | null
+  path: string
+}

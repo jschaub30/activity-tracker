@@ -1,15 +1,21 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
-import type { GarminStatus, SyncStatus } from '../types'
+import type { GarminStatus, ShareLink, SyncStatus } from '../types'
 
 interface ConnectResult extends GarminStatus {
   needs_mfa?: boolean
   message?: string | null
 }
 
+function absoluteShareUrl(path: string): string {
+  return `${window.location.origin}${path}`
+}
+
 export function SettingsPage() {
   const [status, setStatus] = useState<GarminStatus | null>(null)
   const [sync, setSync] = useState<SyncStatus | null>(null)
+  const [shares, setShares] = useState<ShareLink[]>([])
+  const [shareLabel, setShareLabel] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mfaCode, setMfaCode] = useState('')
@@ -21,6 +27,7 @@ export function SettingsPage() {
   async function refresh() {
     setStatus(await api<GarminStatus>('/api/garmin/status'))
     setSync(await api<SyncStatus>('/api/sync/status'))
+    setShares(await api<ShareLink[]>('/api/share'))
   }
 
   useEffect(() => {
@@ -114,6 +121,55 @@ export function SettingsPage() {
     }
   }
 
+  async function createShare(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setBusy(true)
+    try {
+      const link = await api<ShareLink>('/api/share', {
+        method: 'POST',
+        body: JSON.stringify({ label: shareLabel || null }),
+      })
+      setShareLabel('')
+      const url = absoluteShareUrl(link.path)
+      try {
+        await navigator.clipboard.writeText(url)
+        setMessage(`Share link created and copied: ${url}`)
+      } catch {
+        setMessage(`Share link created: ${url}`)
+      }
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create share link')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function copyShare(path: string) {
+    const url = absoluteShareUrl(path)
+    try {
+      await navigator.clipboard.writeText(url)
+      setMessage(`Copied: ${url}`)
+    } catch {
+      setMessage(url)
+    }
+  }
+
+  async function revokeShare(id: string) {
+    setBusy(true)
+    setError(null)
+    try {
+      await api(`/api/share/${id}`, { method: 'DELETE' })
+      setMessage('Share link revoked')
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not revoke link')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div>
       <h1>Settings</h1>
@@ -123,6 +179,83 @@ export function SettingsPage() {
 
       {error && <p className="error">{error}</p>}
       {message && <p className="banner">{message}</p>}
+
+      <section className="card">
+        <h2>Share link (read-only)</h2>
+        <p className="muted small">
+          Anyone with the link can view your weekly summary and charts (confirmed
+          runs, hikes, and stairs only). They cannot sync, edit, or see review
+          data.
+        </p>
+        <form onSubmit={createShare} className="stack">
+          <label>
+            Optional label
+            <input
+              type="text"
+              value={shareLabel}
+              onChange={(e) => setShareLabel(e.target.value)}
+              placeholder="e.g. Family"
+              maxLength={120}
+            />
+          </label>
+          <button type="submit" className="primary" disabled={busy}>
+            Create share link
+          </button>
+        </form>
+        {shares.length === 0 ? (
+          <p className="muted" style={{ marginTop: '1rem' }}>
+            No share links yet.
+          </p>
+        ) : (
+          <table className="data-table" style={{ marginTop: '1rem' }}>
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Link</th>
+                <th>Created</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {shares.map((s) => {
+                const url = absoluteShareUrl(s.path)
+                const active = !s.revoked_at
+                return (
+                  <tr key={s.id}>
+                    <td>{s.label || '—'}</td>
+                    <td className="small">
+                      <code className="share-url">{url}</code>
+                    </td>
+                    <td className="small">
+                      {new Date(s.created_at).toLocaleString()}
+                    </td>
+                    <td>{active ? 'Active' : 'Revoked'}</td>
+                    <td>
+                      <div className="week-actions">
+                        {active && (
+                          <>
+                            <button type="button" onClick={() => void copyShare(s.path)}>
+                              Copy
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void revokeShare(s.id)}
+                              disabled={busy}
+                            >
+                              Revoke
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
 
       <section className="card">
         <h2>Garmin Connect</h2>

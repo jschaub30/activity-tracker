@@ -11,33 +11,50 @@ function formatWeekLabel(start: string, end: string): string {
   return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', opts)}`
 }
 
-function DayCell({ day }: { day: WeekDay }) {
+function DayCell({ day, readOnly }: { day: WeekDay; readOnly: boolean }) {
   return (
-    <td>
+    <td className="day-col">
       <div className="th-date day-cell-date">{day.date.slice(5)}</div>
       {day.activities.length === 0 ? (
         <span className="empty">—</span>
       ) : (
         <ul className="act-list">
-          {day.activities.map((a) => (
-            <li key={a.id}>
-              <Link to={`/activities/${a.id}`}>
+          {day.activities.map((a) => {
+            const body = (
+              <>
                 <span className={`badge ${a.category}`}>{a.category}</span>
                 <span className="act-name">{a.name || 'Activity'}</span>
                 <span className="act-stats">
                   {formatMi(a.distance_mi)} · {formatFt(a.elevation_ft)} ·{' '}
                   {formatCal(a.calories)}
                 </span>
-              </Link>
-            </li>
-          ))}
+              </>
+            )
+            return (
+              <li key={a.id}>
+                {readOnly ? (
+                  <div className="act-static">{body}</div>
+                ) : (
+                  <Link to={`/activities/${a.id}`}>{body}</Link>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </td>
   )
 }
 
-function WeekRow({ week, isCurrent }: { week: WeekSummary; isCurrent: boolean }) {
+function WeekRow({
+  week,
+  isCurrent,
+  readOnly,
+}: {
+  week: WeekSummary
+  isCurrent: boolean
+  readOnly: boolean
+}) {
   return (
     <tr className={isCurrent ? 'current-week' : undefined}>
       <td className="week-label-col">
@@ -47,7 +64,7 @@ function WeekRow({ week, isCurrent }: { week: WeekSummary; isCurrent: boolean })
         </div>
       </td>
       {week.days.map((d) => (
-        <DayCell key={d.date} day={d} />
+        <DayCell key={d.date} day={d} readOnly={readOnly} />
       ))}
       <td className="totals-col">
         <div className="total-num">{formatMi(week.totals.distance_mi)}</div>
@@ -58,17 +75,28 @@ function WeekRow({ week, isCurrent }: { week: WeekSummary; isCurrent: boolean })
   )
 }
 
-export function WeekPage() {
+export function WeekPage({
+  shareToken,
+  titleSuffix,
+}: {
+  shareToken?: string
+  titleSuffix?: string
+} = {}) {
+  const readOnly = Boolean(shareToken)
   const [data, setData] = useState<WeeksList | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const weeksUrl = shareToken
+    ? `/api/public/${shareToken}/weeks?count=52`
+    : '/api/weeks?count=52'
+
   async function load() {
     setLoading(true)
     setError(null)
     try {
-      setData(await api<WeeksList>('/api/weeks?count=52'))
+      setData(await api<WeeksList>(weeksUrl))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load weeks')
     } finally {
@@ -78,7 +106,8 @@ export function WeekPage() {
 
   useEffect(() => {
     void load()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when share token changes
+  }, [weeksUrl])
 
   async function triggerSync() {
     setSyncMsg(null)
@@ -112,24 +141,26 @@ export function WeekPage() {
   if (error) return <p className="error">{error}</p>
   if (!data || data.weeks.length === 0) return null
 
-  // Weekday labels from the most recent week (Sun–Sat order)
   const dayHeaders = data.weeks[0].days
 
   return (
     <div className="week-page">
       <div className="week-header">
         <div>
-          <h1>Weekly summary</h1>
+          <h1>Weekly summary{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
           <p className="muted">
             Last 52 weeks · {data.timezone} · Sun → Sat · runs, hikes &amp; stairs ·
             mi / ft / cal
+            {readOnly ? ' · read-only' : ''}
           </p>
         </div>
-        <div className="week-actions">
-          <button type="button" className="primary" onClick={triggerSync}>
-            Sync now
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="week-actions">
+            <button type="button" className="primary" onClick={triggerSync}>
+              Sync now
+            </button>
+          </div>
+        )}
       </div>
 
       {syncMsg && <p className="banner">{syncMsg}</p>}
@@ -140,7 +171,10 @@ export function WeekPage() {
             <tr>
               <th className="week-label-col">Week</th>
               {dayHeaders.map((d) => (
-                <th key={d.date.slice(0, 4) + weekdayLabel(d.date)}>
+                <th
+                  key={d.date.slice(0, 4) + weekdayLabel(d.date)}
+                  className="day-col"
+                >
                   <div>{weekdayLabel(d.date)}</div>
                 </th>
               ))}
@@ -149,16 +183,27 @@ export function WeekPage() {
           </thead>
           <tbody>
             {data.weeks.map((week, idx) => (
-              <WeekRow key={week.week_start} week={week} isCurrent={idx === 0} />
+              <WeekRow
+                key={week.week_start}
+                week={week}
+                isCurrent={idx === 0}
+                readOnly={readOnly}
+              />
             ))}
           </tbody>
         </table>
       </div>
 
       <p className="muted small">
-        Click an activity for details. Only confirmed runs, hikes, and stair
-        steppers appear — review imports on the <Link to="/review">Review</Link>{' '}
-        page.
+        {readOnly ? (
+          <>Confirmed runs, hikes, and stair steppers only.</>
+        ) : (
+          <>
+            Click an activity for details. Only confirmed runs, hikes, and stair
+            steppers appear — review imports on the{' '}
+            <Link to="/review">Review</Link> page.
+          </>
+        )}
       </p>
     </div>
   )

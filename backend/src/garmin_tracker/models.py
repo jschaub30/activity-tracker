@@ -112,3 +112,16 @@ class SyncRun(SQLModel, table=True):
     activities_created: int = 0
     activities_updated: int = 0
     error: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+
+
+class ShareLink(SQLModel, table=True):
+    """Public read-only share token for weeks + charts."""
+
+    __tablename__ = "share_links"
+
+    id: str = Field(default_factory=new_id, primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    token: str = Field(index=True, unique=True)
+    label: Optional[str] = None
+    created_at: datetime = Field(default_factory=utcnow)
+    revoked_at: Optional[datetime] = None
