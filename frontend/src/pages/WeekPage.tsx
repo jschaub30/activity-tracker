@@ -149,8 +149,7 @@ export function WeekPage({
         <div>
           <h1>Weekly summary{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
           <p className="muted">
-            Last 52 weeks · {data.timezone} · Sun → Sat · runs, hikes &amp; stairs ·
-            mi / ft / cal
+            Last 52 weeks · runs, hikes &amp; stairs
             {readOnly ? ' · read-only' : ''}
           </p>
         </div>

@@ -33,9 +33,7 @@ export function WeekDetailPage() {
           <h1>
             {week.week_start} → {week.week_end}
           </h1>
-          <p className="muted">
-            {week.timezone} · runs, hikes &amp; stairs · mi / ft / cal
-          </p>
+          <p className="muted">runs, hikes &amp; stairs</p>
         </div>
       </div>
 

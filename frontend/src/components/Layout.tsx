@@ -8,7 +8,7 @@ export function Layout() {
     <div className="app-shell">
       <header className="topbar">
         <Link to="/" className="brand">
-          Garmin Tracker
+          Garmin Activity Tracker
         </Link>
         {user && (
           <nav className="nav">
