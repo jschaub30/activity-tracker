@@ -205,9 +205,7 @@ export function SettingsPage() {
   return (
     <div>
       <h1>Settings</h1>
-      <p className="muted">
-        Local multi-user · timezone America/Denver · units mi/ft
-      </p>
+      <p className="muted">Local multi-user</p>
 
       {error && <p className="error">{error}</p>}
       {message && <p className="banner">{message}</p>}
