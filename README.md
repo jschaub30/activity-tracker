@@ -28,7 +28,7 @@ garmin-tracker/
 
 ## Prerequisites
 
-- [mise](https://mise.jdx.dev/) — installs **Node**, **uv**, and runs project tasks  
+- [mise](https://mise.jdx.dev/) — installs **Node** and **uv**, and runs project tasks  
   ```bash
   curl https://mise.run | sh
   # add to shell (zsh):
@@ -51,10 +51,10 @@ mise run secrets    # optional: generate SECRET_KEY / TOKEN_ENCRYPTION_KEY
 
 | Task | What it does |
 |------|----------------|
-| `mise run backend` | FastAPI with reload → http://127.0.0.1:8000 |
-| `mise run frontend` | Vite dev server → http://127.0.0.1:5173 |
-| `mise run dev` | Backend **and** frontend in parallel |
-| `mise run stop:dev` | Stop local API (:8000) and UI (:5173) |
+| `mise start` | Backend **and** frontend in the background |
+| `mise stop` | Stop both local servers |
+| `mise run backend` | FastAPI only (foreground) → http://127.0.0.1:8000 |
+| `mise run frontend` | Vite only (foreground) → http://127.0.0.1:5173 |
 | `mise run test` | Backend pytest |
 | `mise run lint` | ruff + oxlint |
 | `mise run build` | Frontend production build |
@@ -80,38 +80,11 @@ App: http://127.0.0.1:5173
 
 ## Deploy on Fly.io
 
-See **[docs/deploy-fly.md](docs/deploy-fly.md)** for the full guide.
-
-With **mise** (from repo root after `mise install`):
-
-```bash
-mise run fly:auth              # browser login (once)
-# one-time:
-fly apps create garmin-activity-tracker   # if not created
-mise run fly:volume:create
-mise run fly:secrets:set       # prints keys once — save them!
-mise run fly:deploy
-mise run fly:open
-mise run fly:health
-mise run fly:logs
-```
-
-| Task | Purpose |
-|------|---------|
-| `mise run fly:deploy` | Deploy (remote, no cache) |
-| `mise run fly:deploy:quick` | Deploy (cached layers) |
-| `mise run fly:status` | Machines / image |
-| `mise run fly:logs` | Tail logs |
-| `mise run fly:ssh` | SSH console |
-| `mise run fly:secrets:list` | Secret names only |
-
-App name / region: `FLY_APP` and `FLY_REGION` in `mise.toml` (defaults: `garmin-activity-tracker`, `dfw`).
-
-Single machine serves API + SPA; SQLite on a Fly volume at `/data`.
+See **[docs/deploy-fly.md](docs/deploy-fly.md)**. Uses `flyctl` directly (not mise).
 
 ## How to download your Garmin data
 
-1. `mise run dev` (or backend + frontend separately)
+1. `mise start` (or `mise run backend` / `mise run frontend` separately)
 2. Register / log in to the app
 3. **Settings → Connect Garmin** with your Garmin email/password  
    - If MFA is required, enter the code when prompted  

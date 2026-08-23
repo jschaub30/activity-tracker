@@ -5,14 +5,12 @@ Single machine: FastAPI serves the API **and** the built React app. SQLite lives
 ## Prerequisites
 
 1. [Fly account](https://fly.io/app/sign-up)
-2. [mise](https://mise.jdx.dev/) (`mise install` installs `flyctl` from `mise.toml`)
+2. [flyctl](https://fly.io/docs/flyctl/install/)
 
 ```bash
-mise install
-mise run fly:auth    # browser login once
+curl -L https://fly.io/install.sh | sh
+fly auth login    # browser login once
 ```
-
-Or install flyctl separately: `curl -L https://fly.io/install.sh | sh`
 
 ## One-time setup
 
@@ -22,11 +20,16 @@ From the **repo root**:
 # 1) Create app (unique name; already done if you created garmin-activity-tracker)
 fly apps create garmin-activity-tracker
 
-# 2) fly.toml + mise.toml FLY_APP should match the app name
+# 2) fly.toml [app] should match the app name
 
 # 3) Volume + secrets
-mise run fly:volume:create
-mise run fly:secrets:set    # prints SECRET_KEY + TOKEN_ENCRYPTION_KEY once — save them
+fly volumes create garmin_data --region dfw --size 1 -a garmin-activity-tracker
+# generate keys (from repo root, after local `mise run install`):
+#   mise run secrets
+fly secrets set \
+  SECRET_KEY='...' \
+  TOKEN_ENCRYPTION_KEY='...' \
+  -a garmin-activity-tracker
 ```
 
 Keep a backup of `TOKEN_ENCRYPTION_KEY`. Changing it invalidates stored Garmin sessions.
@@ -34,32 +37,33 @@ Keep a backup of `TOKEN_ENCRYPTION_KEY`. Changing it invalidates stored Garmin s
 ## Deploy
 
 ```bash
-mise run fly:deploy          # remote build, no cache
-# or: mise run fly:deploy:quick
+fly deploy -a garmin-activity-tracker --remote-only --no-cache
+# or, with cached layers:
+# fly deploy -a garmin-activity-tracker --remote-only
 ```
 
 Open / health:
 
 ```bash
-mise run fly:open
-mise run fly:health
-# https://garmin-activity-tracker.fly.dev
+fly open -a garmin-activity-tracker
+curl -fsS https://garmin-activity-tracker.fly.dev/api/health
 ```
+
 ## After deploy
 
 1. Register an account on the site  
 2. **Settings → Connect Garmin** (MFA if prompted)  
 3. Wait for sync; use **Review** then **Week** / **Charts**
 
-## Ops (mise)
+## Ops
 
 ```bash
-mise run fly:status
-mise run fly:logs
-mise run fly:ssh
-mise run fly:secrets:list
-mise run fly:volumes
-mise run fly:releases
+fly status -a garmin-activity-tracker
+fly logs -a garmin-activity-tracker
+fly ssh console -a garmin-activity-tracker
+fly secrets list -a garmin-activity-tracker
+fly volumes list -a garmin-activity-tracker
+fly releases -a garmin-activity-tracker
 # SQLite path on volume: /data/garmin_tracker.db
 ```
 
