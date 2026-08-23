@@ -6,7 +6,7 @@ export type ActivityCategory =
   | 'strength'
   | 'uncategorized'
 
-/** Categories shown on the week grid (combined distance + elevation). */
+/** Categories that contribute to week distance/elevation totals. Calories use all confirmed. */
 export const WEEK_SUMMARY_CATEGORIES: ActivityCategory[] = ['run', 'hike', 'stair']
 
 export type ReviewStatus = 'pending' | 'confirmed'

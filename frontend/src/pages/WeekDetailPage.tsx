@@ -33,7 +33,7 @@ export function WeekDetailPage() {
           <h1>
             {week.week_start} → {week.week_end}
           </h1>
-          <p className="muted">runs, hikes &amp; stairs</p>
+          <p className="muted">mi/ft: runs, hikes &amp; stairs · calories: all</p>
         </div>
       </div>
 
@@ -80,7 +80,9 @@ export function WeekDetailPage() {
                 <div className="total-num">{formatMi(week.totals.distance_mi)}</div>
                 <div className="total-num">{formatFt(week.totals.elevation_ft)}</div>
                 <div className="total-num">{formatCal(week.totals.calories)}</div>
-                <div className="muted small">combined runs + hikes + stairs</div>
+                <div className="muted small">
+                  mi/ft: runs + hikes + stairs · cal: all activities
+                </div>
               </td>
             </tr>
           </tbody>

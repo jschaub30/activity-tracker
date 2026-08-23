@@ -40,6 +40,11 @@ def _fetch_confirmed_week_activities(
     week_start: date,
     tz: ZoneInfo,
 ) -> list[Activity]:
+    """All confirmed activities for the week (any category).
+
+    Distance/elevation week totals only count WEEK_SUMMARY_CATEGORIES;
+    calories count every confirmed activity.
+    """
     week_end = week_start + timedelta(days=6)
     start_dt = datetime.combine(week_start, datetime.min.time(), tzinfo=tz)
     end_dt = datetime.combine(week_end, datetime.max.time(), tzinfo=tz)
@@ -51,7 +56,6 @@ def _fetch_confirmed_week_activities(
         .where(
             Activity.user_id == user.id,
             Activity.review_status == ReviewStatus.confirmed,
-            Activity.category.in_(list(WEEK_SUMMARY_CATEGORIES)),  # type: ignore[attr-defined]
             Activity.start_time >= start_utc,
             Activity.start_time <= end_utc,
         )
@@ -75,6 +79,7 @@ def build_week(session: Session, user: User, week_start_str: str | None = None) 
     total_m = 0.0
     total_elev_m = 0.0
     total_cal = 0.0
+    summary_cats = set(WEEK_SUMMARY_CATEGORIES)
 
     for act in activities:
         st = act.start_time
@@ -97,8 +102,10 @@ def build_week(session: Session, user: User, week_start_str: str | None = None) 
                     duration_s=act.duration_s,
                 )
             )
-            total_m += act.distance_m or 0.0
-            total_elev_m += act.elevation_gain_m or 0.0
+            # mi/ft: runs, hikes, stairs only; calories: all confirmed activities
+            if act.category in summary_cats:
+                total_m += act.distance_m or 0.0
+                total_elev_m += act.elevation_gain_m or 0.0
             total_cal += cal
 
     days = [

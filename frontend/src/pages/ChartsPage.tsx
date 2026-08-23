@@ -143,7 +143,8 @@ export function ChartsPage({
         <div>
           <h1>Year charts{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
           <p className="muted">
-            Weekly totals · past 52 weeks · runs, hikes &amp; stairs
+            Weekly totals · past 52 weeks · mi/ft: runs, hikes &amp; stairs ·
+            calories: all
             {readOnly ? ' · read-only' : ''}
           </p>
         </div>

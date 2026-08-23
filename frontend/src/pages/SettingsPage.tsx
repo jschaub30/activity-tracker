@@ -214,8 +214,8 @@ export function SettingsPage() {
         <h2>Share link (read-only)</h2>
         <p className="muted small">
           Anyone with the link can view your weekly summary and charts (confirmed
-          runs, hikes, and stairs only). They cannot sync, edit, or see review
-          data.
+          activities; mi/ft from runs, hikes, and stairs; calories from all).
+          They cannot sync, edit, or see review data.
         </p>
         <form onSubmit={createShare} className="stack">
           <label>
@@ -384,7 +384,8 @@ export function SettingsPage() {
         )}
         <p className="muted small" style={{ marginTop: '0.75rem' }}>
           After a successful sync, open <strong>Review</strong> to confirm
-          categories. Confirmed runs, hikes, and stairs appear on the week grid.
+          categories. All confirmed activities appear on the week grid (mi/ft
+          from runs, hikes, and stairs; calories from all).
         </p>
       </section>
 

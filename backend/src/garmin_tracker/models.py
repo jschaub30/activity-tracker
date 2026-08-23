@@ -24,7 +24,8 @@ class ActivityCategory(str, Enum):
     uncategorized = "uncategorized"
 
 
-# Categories that appear on the Sunday–Saturday week grid (combined mi/ft totals)
+# Categories that contribute to week distance/elevation totals.
+# All confirmed activities appear on the grid; calories sum every category.
 WEEK_SUMMARY_CATEGORIES = (
     ActivityCategory.run,
     ActivityCategory.hike,

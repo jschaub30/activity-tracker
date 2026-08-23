@@ -149,7 +149,7 @@ export function WeekPage({
         <div>
           <h1>Weekly summary{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
           <p className="muted">
-            Last 52 weeks · runs, hikes &amp; stairs
+            Last 52 weeks · mi/ft: runs, hikes &amp; stairs · calories: all activities
             {readOnly ? ' · read-only' : ''}
           </p>
         </div>
@@ -195,11 +195,15 @@ export function WeekPage({
 
       <p className="muted small">
         {readOnly ? (
-          <>Confirmed runs, hikes, and stair steppers only.</>
+          <>
+            Confirmed activities only. Distance and elevation count runs, hikes,
+            and stairs; calories count all confirmed activities.
+          </>
         ) : (
           <>
-            Click an activity for details. Only confirmed runs, hikes, and stair
-            steppers appear — review imports on the{' '}
+            Click an activity for details. Confirmed activities appear here —
+            distance and elevation count runs, hikes, and stairs; calories count
+            all categories. Review imports on the{' '}
             <Link to="/review">Review</Link> page.
           </>
         )}
