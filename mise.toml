@@ -8,7 +8,7 @@ node = "24"
 uv = "0.11"
 
 [env]
-VITE_API_URL = "http://127.0.0.1:8000"
+VITE_API_URL = "http://127.0.0.1:8010"
 _.file = [
   "{{config_root}}/backend/.env",
 ]
@@ -86,10 +86,10 @@ subprocess.Popen(
 PY
 }
 
-start_one backend 8000 "$ROOT/backend" \
-  uv run uvicorn garmin_tracker.main:app --reload --host 127.0.0.1 --port 8000
-start_one frontend 5173 "$ROOT/frontend" \
-  npm run dev -- --host 127.0.0.1 --port 5173
+start_one backend 8010 "$ROOT/backend" \
+  uv run uvicorn garmin_tracker.main:app --reload --host 127.0.0.1 --port 8010
+start_one frontend 5180 "$ROOT/frontend" \
+  npm run dev -- --host 127.0.0.1 --port 5180
 
 wait_for() {
   local name="$1" port="$2"
@@ -105,12 +105,12 @@ wait_for() {
   return 1
 }
 
-wait_for backend 8000
-wait_for frontend 5173
+wait_for backend 8010
+wait_for frontend 5180
 
 echo
-echo "Backend   http://127.0.0.1:8000"
-echo "Frontend  http://127.0.0.1:5173"
+echo "Backend   http://127.0.0.1:8010"
+echo "Frontend  http://127.0.0.1:5180"
 echo "Logs      $LOGDIR/{backend,frontend}.log"
 echo "Stop with: mise stop"
 """
@@ -143,20 +143,20 @@ stop_port() {
   echo "${name}: stopped"
 }
 
-stop_port 8000 "backend"
-stop_port 5173 "frontend"
+stop_port 8010 "backend"
+stop_port 5180 "frontend"
 echo "Local dev services stopped."
 """
 
 [tasks.backend]
-description = "Start FastAPI with reload (foreground, http://127.0.0.1:8000)"
+description = "Start FastAPI with reload (foreground, http://127.0.0.1:8010)"
 dir = "{{config_root}}/backend"
-run = "uv run uvicorn garmin_tracker.main:app --reload --host 127.0.0.1 --port 8000"
+run = "uv run uvicorn garmin_tracker.main:app --reload --host 127.0.0.1 --port 8010"
 
 [tasks.frontend]
-description = "Start Vite dev server (foreground, http://127.0.0.1:5173)"
+description = "Start Vite dev server (foreground, http://127.0.0.1:5180)"
 dir = "{{config_root}}/frontend"
-run = "npm run dev -- --host 127.0.0.1 --port 5173"
+run = "npm run dev -- --host 127.0.0.1 --port 5180"
 
 # ---------------------------------------------------------------------------
 # Quality / build
@@ -206,7 +206,7 @@ description = "Open API docs in the browser (API must be running)"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
-url="http://127.0.0.1:8000/docs"
+url="http://127.0.0.1:8010/docs"
 if command -v open >/dev/null 2>&1; then
   open "$url"
 else

@@ -9,6 +9,6 @@ def main() -> None:
     uvicorn.run(
         "garmin_tracker.main:app",
         host="127.0.0.1",
-        port=8000,
+        port=8010,
         reload=True,
     )

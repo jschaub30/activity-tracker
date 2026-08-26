@@ -33,9 +33,9 @@ class Settings(BaseSettings):
     # App defaults
     default_timezone: str = "America/Denver"
     backfill_days: int = 365
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_origins: str = "http://localhost:5180,http://127.0.0.1:5180"
 
-    # Built React app directory (Docker / Fly sets this to /app/frontend/dist)
+    # Optional directory of a built React app to serve from the API
     static_dir: str = ""
 
     @property

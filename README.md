@@ -53,8 +53,8 @@ mise run secrets    # optional: generate SECRET_KEY / TOKEN_ENCRYPTION_KEY
 |------|----------------|
 | `mise start` | Backend **and** frontend in the background |
 | `mise stop` | Stop both local servers |
-| `mise run backend` | FastAPI only (foreground) → http://127.0.0.1:8000 |
-| `mise run frontend` | Vite only (foreground) → http://127.0.0.1:5173 |
+| `mise run backend` | FastAPI only (foreground) → http://127.0.0.1:8010 |
+| `mise run frontend` | Vite only (foreground) → http://127.0.0.1:5180 |
 | `mise run test` | Backend pytest |
 | `mise run lint` | ruff + oxlint |
 | `mise run build` | Frontend production build |
@@ -63,9 +63,9 @@ mise run secrets    # optional: generate SECRET_KEY / TOKEN_ENCRYPTION_KEY
 | `mise run secrets` | Print new env secrets |
 | `mise tasks` | List all tasks |
 
-API docs: http://127.0.0.1:8000/docs  
+API docs: http://127.0.0.1:8010/docs  
 
-App: http://127.0.0.1:5173
+App: http://127.0.0.1:5180
 
 ## What's implemented (scaffold)
 
@@ -77,10 +77,6 @@ App: http://127.0.0.1:5173
 - React pages: login, register, week table, review, activity detail, settings
 - **Real Garmin Connect login** (MFA supported), encrypted session tokens  
 - **Sync**: 365-day first backfill, then incremental; activities land in **Review**  
-
-## Deploy on Fly.io
-
-See **[docs/deploy-fly.md](docs/deploy-fly.md)**. Uses `flyctl` directly (not mise).
 
 ## How to download your Garmin data
 
