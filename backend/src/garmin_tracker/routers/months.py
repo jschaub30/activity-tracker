@@ -10,6 +10,6 @@ router = APIRouter(prefix="/api/months", tags=["months"])
 @router.get("", response_model=MonthsListOut)
 def list_months(
     user: CurrentUser,
-    count: int = Query(default=24, ge=1, le=120),
+    count: int = Query(default=48, ge=1, le=120),
 ) -> MonthsListOut:
     return build_months_list(user, count=count)

@@ -66,7 +66,7 @@ def public_week_detail(
 @router.get("/{token}/months", response_model=MonthsListOut)
 def public_months(
     token: str,
-    count: int = Query(default=24, ge=1, le=120),
+    count: int = Query(default=48, ge=1, le=120),
 ) -> MonthsListOut:
     _link, user = _resolve_share_user(token)
     return build_months_list(user, count=count)

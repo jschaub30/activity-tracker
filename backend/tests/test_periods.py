@@ -80,10 +80,10 @@ def test_years_month_buckets_and_totals():
     assert y2025.totals.calories == 250.0
 
 
-def test_months_last_24_most_recent_first():
+def test_months_last_48_most_recent_first():
     user = _user()
-    result = build_months_list(user, count=24)
-    assert len(result.months) == 24
+    result = build_months_list(user, count=48)
+    assert len(result.months) == 48
     first = result.months[0]
     second = result.months[1]
     assert first.is_current is True

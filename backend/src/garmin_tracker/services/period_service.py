@@ -69,7 +69,7 @@ def _empty_totals() -> WeekTotalsOut:
     return WeekTotalsOut(distance_mi=0.0, elevation_ft=0.0, calories=0.0)
 
 
-def build_months_list(user: User, count: int = 24) -> MonthsListOut:
+def build_months_list(user: User, count: int = 48) -> MonthsListOut:
     count = max(1, min(count, 120))
     tz = _tz(user)
     today = datetime.now(tz).date()
