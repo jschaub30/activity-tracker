@@ -5,7 +5,14 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from garmin_tracker.models import ShareLink, User
-from garmin_tracker.schemas import PublicShareMeta, WeekOut, WeeksListOut
+from garmin_tracker.schemas import (
+    MonthsListOut,
+    PublicShareMeta,
+    WeekOut,
+    WeeksListOut,
+    YearsListOut,
+)
+from garmin_tracker.services.period_service import build_months_list, build_years_list
 from garmin_tracker.services.week_service import build_week, build_weeks_list
 from garmin_tracker.store import repo
 
@@ -54,3 +61,18 @@ def public_week_detail(
 ) -> WeekOut:
     _link, user = _resolve_share_user(token)
     return build_week(user, start)
+
+
+@router.get("/{token}/months", response_model=MonthsListOut)
+def public_months(
+    token: str,
+    count: int = Query(default=24, ge=1, le=120),
+) -> MonthsListOut:
+    _link, user = _resolve_share_user(token)
+    return build_months_list(user, count=count)
+
+
+@router.get("/{token}/years", response_model=YearsListOut)
+def public_years(token: str) -> YearsListOut:
+    _link, user = _resolve_share_user(token)
+    return build_years_list(user)

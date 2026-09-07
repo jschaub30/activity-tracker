@@ -522,6 +522,34 @@ select {
   margin-bottom: 1.25rem;
 }
 
+.range-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.range-toggle button {
+  background: var(--panel);
+  color: var(--muted);
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 0.45rem 0.85rem;
+  font: inherit;
+  cursor: pointer;
+}
+.range-toggle button:last-child {
+  border-right: none;
+}
+.range-toggle button.active {
+  background: #1e3a5f;
+  color: #fff;
+}
+.range-toggle button:hover:not(.active) {
+  color: #fff;
+}
+
 .shared-banner {
   display: flex;
   flex-wrap: wrap;
