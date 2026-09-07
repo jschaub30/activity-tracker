@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import pickle
 from datetime import date
 from typing import Any
 
@@ -72,7 +74,9 @@ class GarminClient:
         except GarminMfaRequired:
             raise
         except GarminConnectAuthenticationError as exc:
-            raise GarminClientError(str(exc) or "Invalid Garmin email or password") from exc
+            raise GarminClientError(
+                str(exc) or "Invalid Garmin email or password"
+            ) from exc
         except GarminConnectTooManyRequestsError as exc:
             raise GarminClientError(
                 "Garmin rate limit — wait a few minutes and try again"
@@ -106,7 +110,8 @@ class GarminClient:
         """Restore from dumps() JSON string (di_token / refresh tokens)."""
         try:
             g = Garmin(email=self.email)
-            # Always load the JSON blob directly — do not pass through login(tokenstore=)
+            # Load the JSON blob directly — login(tokenstore=) treats short
+            # strings as filesystem paths.
             # because short strings are treated as filesystem paths.
             g.client.loads(session_data)
             if g.client.di_refresh_token and g.client._token_expires_soon():  # noqa: SLF001
@@ -153,17 +158,32 @@ class GarminClient:
             raise GarminClientError(f"Failed to fetch activities: {exc}") from exc
 
 
-# In-process MFA holds (single-worker local use). Keyed by app user_id.
-_pending_mfa: dict[str, tuple[Garmin, str]] = {}
+def serialize_pending_mfa(client: Garmin, email: str) -> str:
+    """Persist a mid-MFA Garmin client so MFA can resume on another request."""
+    try:
+        dumped = pickle.dumps(client, protocol=pickle.HIGHEST_PROTOCOL)
+        return json.dumps({"kind": "pickle", "email": email, "blob": dumped.hex()})
+    except Exception:  # noqa: BLE001
+        logger.debug("pickle of mid-MFA client failed", exc_info=True)
+    try:
+        session = client.client.dumps()
+        if session:
+            return json.dumps({"kind": "garth", "email": email, "session": session})
+    except Exception:  # noqa: BLE001
+        logger.debug("garth dumps() unavailable for mid-MFA client", exc_info=True)
+    raise GarminClientError("Could not serialize pending MFA session — retry Connect")
 
 
-def store_pending_mfa(user_id: str, client: Garmin, email: str) -> None:
-    _pending_mfa[user_id] = (client, email)
+def deserialize_pending_mfa(payload: str) -> tuple[Garmin, str]:
+    data = json.loads(payload)
+    email = data["email"]
+    kind = data.get("kind")
+    if kind == "garth":
+        g = Garmin(email=email)
+        g.client.loads(data["session"])
+        return g, email
+    if kind == "pickle":
+        client = pickle.loads(bytes.fromhex(data["blob"]))
+        return client, email
+    raise GarminClientError("Unrecognized pending MFA payload")
 
-
-def pop_pending_mfa(user_id: str) -> tuple[Garmin, str] | None:
-    return _pending_mfa.pop(user_id, None)
-
-
-def get_pending_mfa(user_id: str) -> tuple[Garmin, str] | None:
-    return _pending_mfa.get(user_id)

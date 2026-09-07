@@ -1,0 +1,8 @@
+region                 = "us-west-2"
+name_prefix            = "garmin-tracker"
+repo_name              = "garmin-tracker"
+lambda_image_tag       = "bootstrap"
+domain_name            = ""
+hosted_zone_id         = ""
+price_class            = "PriceClass_100"
+enable_scheduled_sync  = false

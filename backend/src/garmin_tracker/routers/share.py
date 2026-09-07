@@ -5,11 +5,11 @@ from __future__ import annotations
 import secrets
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import select
 
-from garmin_tracker.deps import CurrentUser, SessionDep
+from garmin_tracker.deps import CurrentUser
 from garmin_tracker.models import ShareLink, utcnow
 from garmin_tracker.schemas import ShareLinkCreate, ShareLinkOut
+from garmin_tracker.store import repo
 
 router = APIRouter(prefix="/api/share", tags=["share"])
 
@@ -26,43 +26,27 @@ def _to_out(link: ShareLink) -> ShareLinkOut:
 
 
 @router.get("", response_model=list[ShareLinkOut])
-def list_share_links(session: SessionDep, user: CurrentUser) -> list[ShareLinkOut]:
-    rows = session.exec(
-        select(ShareLink)
-        .where(ShareLink.user_id == user.id)
-        .order_by(ShareLink.created_at.desc())  # type: ignore[attr-defined]
-    ).all()
-    return [_to_out(r) for r in rows]
+def list_share_links(user: CurrentUser) -> list[ShareLinkOut]:
+    return [_to_out(r) for r in repo.list_share_links(user.id)]
 
 
 @router.post("", response_model=ShareLinkOut, status_code=201)
-def create_share_link(
-    body: ShareLinkCreate,
-    session: SessionDep,
-    user: CurrentUser,
-) -> ShareLinkOut:
+def create_share_link(body: ShareLinkCreate, user: CurrentUser) -> ShareLinkOut:
     token = secrets.token_urlsafe(24)
     link = ShareLink(
         user_id=user.id,
         token=token,
         label=(body.label.strip() if body.label else None) or None,
     )
-    session.add(link)
-    session.commit()
-    session.refresh(link)
+    repo.put_share_link(link)
     return _to_out(link)
 
 
 @router.delete("/{link_id}", status_code=204)
-def revoke_share_link(
-    link_id: str,
-    session: SessionDep,
-    user: CurrentUser,
-) -> None:
-    link = session.get(ShareLink, link_id)
-    if not link or link.user_id != user.id:
+def revoke_share_link(link_id: str, user: CurrentUser) -> None:
+    link = repo.get_share_by_id(user.id, link_id)
+    if not link:
         raise HTTPException(status_code=404, detail="Share link not found")
     if link.revoked_at is None:
         link.revoked_at = utcnow()
-        session.add(link)
-        session.commit()
+        repo.put_share_link(link)

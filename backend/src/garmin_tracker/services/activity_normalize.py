@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from garmin_tracker.categorization import suggest_category
@@ -35,7 +35,7 @@ def _parse_start_time(raw: dict[str, Any]) -> datetime:
             ts = float(val)
             if ts > 1e12:
                 ts /= 1000.0
-            return datetime.fromtimestamp(ts, tz=timezone.utc)
+            return datetime.fromtimestamp(ts, tz=UTC)
         if isinstance(val, str):
             s = val.strip()
             # "2024-01-15 12:34:56" or ISO
@@ -49,18 +49,18 @@ def _parse_start_time(raw: dict[str, Any]) -> datetime:
                 try:
                     dt = datetime.strptime(s.replace("Z", ""), fmt.replace("Z", ""))
                     if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone.utc)
+                        dt = dt.replace(tzinfo=UTC)
                     return dt
                 except ValueError:
                     continue
             try:
                 dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
                 if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
+                    dt = dt.replace(tzinfo=UTC)
                 return dt
             except ValueError:
                 continue
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _num(raw: dict[str, Any], *keys: str) -> float | None:

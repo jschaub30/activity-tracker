@@ -6,9 +6,9 @@
 [tools]
 node = "24"
 uv = "0.11"
+terraform = "1.11"
 
 [env]
-VITE_API_URL = "http://127.0.0.1:8010"
 _.file = [
   "{{config_root}}/backend/.env",
 ]
@@ -86,6 +86,7 @@ subprocess.Popen(
 PY
 }
 
+mise run dynamodb
 start_one backend 8010 "$ROOT/backend" \
   uv run uvicorn garmin_tracker.main:app --reload --host 127.0.0.1 --port 8010
 start_one frontend 5180 "$ROOT/frontend" \
@@ -109,9 +110,10 @@ wait_for backend 8010
 wait_for frontend 5180
 
 echo
-echo "Backend   http://127.0.0.1:8010"
-echo "Frontend  http://127.0.0.1:5180"
-echo "Logs      $LOGDIR/{backend,frontend}.log"
+echo "Backend    http://127.0.0.1:8010"
+echo "Frontend   http://127.0.0.1:5180"
+echo "DynamoDB   http://127.0.0.1:8000 (docker garmin-tracker-ddb)"
+echo "Logs       $LOGDIR/{backend,frontend}.log"
 echo "Stop with: mise stop"
 """
 
@@ -145,6 +147,10 @@ stop_port() {
 
 stop_port 8010 "backend"
 stop_port 5180 "frontend"
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^garmin-tracker-ddb$'; then
+  docker stop garmin-tracker-ddb >/dev/null
+  echo "dynamodb: stopped garmin-tracker-ddb"
+fi
 echo "Local dev services stopped."
 """
 
@@ -226,4 +232,80 @@ from cryptography.fernet import Fernet
 print("SECRET_KEY=" + secrets.token_urlsafe(32))
 print("TOKEN_ENCRYPTION_KEY=" + Fernet.generate_key().decode())
 PY
+"""
+
+# ---------------------------------------------------------------------------
+# DynamoDB Local + AWS deploy
+# ---------------------------------------------------------------------------
+
+[tasks.dynamodb]
+description = "Start DynamoDB Local in Docker on :8000"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker is required for DynamoDB Local" >&2
+  exit 1
+fi
+if lsof -ti tcp:8000 -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "DynamoDB Local already on :8000"
+  exit 0
+fi
+if docker ps -a --format '{{.Names}}' | grep -q '^garmin-tracker-ddb$'; then
+  docker start garmin-tracker-ddb >/dev/null
+else
+  docker run -d --name garmin-tracker-ddb -p 8000:8000 \
+    amazon/dynamodb-local:latest -jar DynamoDBLocal.jar -sharedDb
+fi
+echo "DynamoDB Local http://127.0.0.1:8000"
+"""
+
+[tasks."tf:init"]
+description = "terraform init in infra/"
+dir = "{{config_root}}/infra"
+run = "terraform init"
+
+[tasks."tf:validate"]
+description = "terraform fmt + validate"
+dir = "{{config_root}}/infra"
+run = "terraform fmt -check && terraform init -backend=false -input=false && terraform validate"
+
+[tasks."deploy:image"]
+description = "Build/push ARM64 Lambda image to ECR (tag = git sha or bootstrap)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="{{config_root}}"
+REGION="${AWS_REGION:-us-west-2}"
+TAG="${LAMBDA_IMAGE_TAG:-$(git -C "$ROOT" rev-parse --short HEAD)}"
+REPO_URL="$(aws ecr describe-repositories --repository-names garmin-tracker --region "$REGION" --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
+if [[ -z "$REPO_URL" || "$REPO_URL" == "None" ]]; then
+  echo "ECR repo missing — run: terraform -chdir=infra apply -target=aws_ecr_repository.api" >&2
+  exit 1
+fi
+aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$(echo "$REPO_URL" | cut -d/ -f1)"
+docker build --platform linux/arm64 -t "$REPO_URL:$TAG" -t "$REPO_URL:bootstrap" "$ROOT/backend"
+docker push "$REPO_URL:$TAG"
+docker push "$REPO_URL:bootstrap"
+echo "Pushed $REPO_URL:$TAG"
+"""
+
+[tasks.deploy]
+description = "Build SPA, push Lambda image, terraform apply, sync S3, invalidate CloudFront"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="{{config_root}}"
+REGION="${AWS_REGION:-us-west-2}"
+TAG="${LAMBDA_IMAGE_TAG:-$(git -C "$ROOT" rev-parse --short HEAD)}"
+cd "$ROOT/frontend"
+npx vite build
+cd "$ROOT"
+mise run deploy:image
+terraform -chdir="$ROOT/infra" apply -auto-approve -var="lambda_image_tag=$TAG"
+BUCKET="$(terraform -chdir="$ROOT/infra" output -raw frontend_bucket)"
+DIST="$(terraform -chdir="$ROOT/infra" output -raw cloudfront_distribution_id)"
+aws s3 sync "$ROOT/frontend/dist" "s3://$BUCKET/" --delete --region "$REGION"
+aws cloudfront create-invalidation --distribution-id "$DIST" --paths '/*' >/dev/null
+echo "App: $(terraform -chdir="$ROOT/infra" output -raw app_url)"
 """

@@ -1,9 +1,8 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from sqlmodel import Session, select
 
-from garmin_tracker.db import engine
-from garmin_tracker.deps import CurrentUser, SessionDep
-from garmin_tracker.models import GarminSession, User, utcnow
+from garmin_tracker.config import get_settings
+from garmin_tracker.deps import CurrentUser
+from garmin_tracker.models import GarminSession, User, new_id, utcnow
 from garmin_tracker.schemas import (
     GarminConnectRequest,
     GarminConnectResult,
@@ -15,10 +14,11 @@ from garmin_tracker.services.garmin_client import (
     GarminClient,
     GarminClientError,
     GarminMfaRequired,
-    pop_pending_mfa,
-    store_pending_mfa,
+    deserialize_pending_mfa,
+    serialize_pending_mfa,
 )
-from garmin_tracker.services.sync_service import SyncService
+from garmin_tracker.services.sync_service import SyncService, enqueue_sync, run_sync_job
+from garmin_tracker.store import repo
 
 router = APIRouter(prefix="/api/garmin", tags=["garmin"])
 
@@ -35,14 +35,9 @@ def _status_out(row: GarminSession | None) -> GarminStatusOut:
     )
 
 
-def _save_session(
-    session: Session,
-    user: User,
-    email: str,
-    token_blob: str,
-) -> GarminSession:
+def _save_session(user: User, email: str, token_blob: str) -> GarminSession:
     encrypted = encrypt_token(token_blob)
-    row = session.exec(select(GarminSession).where(GarminSession.user_id == user.id)).first()
+    row = repo.get_garmin(user.id)
     if row:
         row.encrypted_token = encrypted
         row.garmin_email = email.lower()
@@ -50,50 +45,47 @@ def _save_session(
         row.last_error = None
     else:
         row = GarminSession(
+            id=new_id(),
             user_id=user.id,
             encrypted_token=encrypted,
             garmin_email=email.lower(),
         )
-    session.add(row)
-    session.commit()
-    session.refresh(row)
-    return row
+    return repo.put_garmin(row)
 
 
-def _kick_off_sync(user_id: str) -> None:
-    """Background first sync after connect."""
-    with Session(engine) as session:
-        user = session.get(User, user_id)
-        if not user:
-            return
-        svc = SyncService(session, user)
-        try:
-            if not svc.is_running():
-                svc.start_sync()
-        except Exception:  # noqa: BLE001
-            # Errors recorded on SyncRun / garmin.last_error
-            pass
+def _kick_off_sync(user: User, background_tasks: BackgroundTasks) -> None:
+    svc = SyncService(user)
+    try:
+        if not svc.is_running():
+            run = svc.create_running_sync()
+            if (get_settings().sync_backend or "inline").lower() == "sqs":
+                enqueue_sync(user.id, run.id)
+            else:
+                background_tasks.add_task(run_sync_job, user.id, run.id)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 @router.get("/status", response_model=GarminStatusOut)
-def garmin_status(session: SessionDep, user: CurrentUser) -> GarminStatusOut:
-    row = session.exec(select(GarminSession).where(GarminSession.user_id == user.id)).first()
-    return _status_out(row)
+def garmin_status(user: CurrentUser) -> GarminStatusOut:
+    return _status_out(repo.get_garmin(user.id))
 
 
 @router.post("/connect", response_model=GarminConnectResult)
 def garmin_connect(
     body: GarminConnectRequest,
-    session: SessionDep,
     user: CurrentUser,
     background_tasks: BackgroundTasks,
 ) -> GarminConnectResult:
-    """Log in to Garmin Connect and store encrypted session tokens."""
     client = GarminClient(email=body.email, password=body.password)
     try:
         token_blob = client.login()
     except GarminMfaRequired as mfa:
-        store_pending_mfa(user.id, mfa.client, mfa.email)
+        try:
+            blob = serialize_pending_mfa(mfa.client, mfa.email)
+        except GarminClientError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        repo.put_mfa(user.id, blob)
         return GarminConnectResult(
             connected=False,
             needs_mfa=True,
@@ -103,8 +95,9 @@ def garmin_connect(
     except GarminClientError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    row = _save_session(session, user, body.email, token_blob)
-    background_tasks.add_task(_kick_off_sync, user.id)
+    repo.delete_mfa(user.id)
+    row = _save_session(user, body.email, token_blob)
+    _kick_off_sync(user, background_tasks)
     return GarminConnectResult(
         connected=True,
         needs_mfa=False,
@@ -119,26 +112,24 @@ def garmin_connect(
 @router.post("/mfa", response_model=GarminConnectResult)
 def garmin_mfa(
     body: GarminMfaRequest,
-    session: SessionDep,
     user: CurrentUser,
     background_tasks: BackgroundTasks,
 ) -> GarminConnectResult:
-    pending = pop_pending_mfa(user.id)
-    if not pending:
+    blob = repo.get_mfa(user.id)
+    if not blob:
         raise HTTPException(
             status_code=400,
             detail="No pending MFA login. Start Connect again.",
         )
-    garmin_obj, email = pending
     try:
+        garmin_obj, email = deserialize_pending_mfa(blob)
         _wrapper, token_blob = GarminClient.complete_mfa(garmin_obj, body.code, email)
     except GarminClientError as exc:
-        # Put back so user can retry the same code entry once? Better to require reconnect
-        store_pending_mfa(user.id, garmin_obj, email)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    row = _save_session(session, user, email, token_blob)
-    background_tasks.add_task(_kick_off_sync, user.id)
+    repo.delete_mfa(user.id)
+    row = _save_session(user, email, token_blob)
+    _kick_off_sync(user, background_tasks)
     return GarminConnectResult(
         connected=True,
         needs_mfa=False,
@@ -151,10 +142,9 @@ def garmin_mfa(
 
 
 @router.delete("/connect", status_code=204)
-def garmin_disconnect(session: SessionDep, user: CurrentUser) -> None:
-    pop_pending_mfa(user.id)
-    row = session.exec(select(GarminSession).where(GarminSession.user_id == user.id)).first()
+def garmin_disconnect(user: CurrentUser) -> None:
+    repo.delete_mfa(user.id)
+    row = repo.get_garmin(user.id)
     if not row:
         raise HTTPException(status_code=404, detail="No Garmin connection")
-    session.delete(row)
-    session.commit()
+    repo.delete_garmin(user.id)

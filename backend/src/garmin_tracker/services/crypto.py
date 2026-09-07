@@ -9,7 +9,7 @@ def _fernet() -> Fernet:
     settings = get_settings()
     key = settings.token_encryption_key
     if not key:
-        # Dev fallback: derive from secret_key (not ideal; set TOKEN_ENCRYPTION_KEY in .env)
+        # Dev fallback: derive from secret_key (set TOKEN_ENCRYPTION_KEY in .env)
         import base64
         import hashlib
 
@@ -26,4 +26,6 @@ def decrypt_token(ciphertext: str) -> str:
     try:
         return _fernet().decrypt(ciphertext.encode()).decode()
     except InvalidToken as exc:
-        raise ValueError("Failed to decrypt Garmin token; check TOKEN_ENCRYPTION_KEY") from exc
+        raise ValueError(
+            "Failed to decrypt Garmin token; check TOKEN_ENCRYPTION_KEY"
+        ) from exc

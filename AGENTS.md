@@ -6,12 +6,14 @@ Human setup and product overview: [README.md](README.md). Prefer `mise run …` 
 
 | Task | Notes |
 |------|--------|
-| `mise run test` | Backend pytest only (`backend/tests/`) |
+| `mise run test` | Backend pytest only (`backend/tests/`, moto DynamoDB) |
 | `mise run lint` | ruff (backend) + oxlint (frontend) |
 | `mise run check` | test + lint + frontend build |
-| `mise start` / `mise stop` | Local API `:8010` and Vite `:5180` |
+| `mise start` / `mise stop` | DynamoDB Local `:8000`, API `:8010`, Vite `:5180` |
+| `mise run dynamodb` | Docker DynamoDB Local only |
+| `mise run deploy` | SPA + Lambda image + terraform apply + CloudFront invalidation |
 
-Do not run `pytest` or `npm test` from the repo root. Frontend has no test script. Ports are **8010 / 5180**, not the FastAPI/Vite defaults.
+Do not run `pytest` or `npm test` from the repo root. Frontend has no test script. Ports are **8010 / 5180**, not the FastAPI/Vite defaults. Tests must not hit live AWS (conftest uses moto).
 
 ## Invariants
 
@@ -21,11 +23,20 @@ Do not run `pytest` or `npm test` from the repo root. Frontend has no test scrip
 - Week distance/elevation: confirmed **run + hike + stair** only (`WEEK_SUMMARY_CATEGORIES`).
 - Calories sum **all** confirmed activities; cardio/strength show duration + calories.
 - New Garmin activities land in **Review** (`pending`) until confirmed.
-- Do not commit `backend/.env` or `backend/data/`.
+- Persistence is **DynamoDB** (single table). Local uses DynamoDB Local; do not default the API at `mise start` to a real AWS table.
+- Do not commit `backend/.env`, `*.tfstate`, `*.tfvars`, or `backend/data/`.
+
+## AWS / Terraform
+
+- All taggable resources use provider `default_tags`: `repo=garmin-tracker`, `created-by=terraform`.
+- First apply needs ECR then an image (`mise run deploy:image`) then full apply. See `infra/README.md`.
+- Production SPA is same-origin: CloudFront `/*` → S3, `/api/*` → Lambda Function URL. Leave `VITE_API_URL` unset for production builds.
 
 ## Layout
 
-- API routers: `backend/src/garmin_tracker/routers/` (`/api/auth`, `garmin`, `sync`, `activities`, `weeks`, `share`, `public`, `account`)
-- Domain: `services/`, `categorization.py`, `units.py`, `models.py`
-- UI: `frontend/src/pages/` (week, review, charts, share `/s/:token`, settings)
-- Frontend API client: `frontend/src/api/client.ts` (`VITE_API_URL` → `:8010` in dev)
+- API routers: `backend/src/garmin_tracker/routers/`
+- Domain: `services/`, `store/`, `categorization.py`, `units.py`, `models.py`
+- Jobs: `jobs/sync_worker.py` (SQS); local `SYNC_BACKEND=inline`
+- UI: `frontend/src/pages/`
+- Frontend API client: `frontend/src/api/client.ts` (relative `/api`; Vite proxies in dev)
+- Infra: `infra/`

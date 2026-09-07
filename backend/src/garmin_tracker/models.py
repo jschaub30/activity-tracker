@@ -1,21 +1,22 @@
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Optional
-from uuid import uuid4
+"""Domain types. Persistence is DynamoDB (see garmin_tracker.store)."""
 
-from sqlalchemy import Column, Text, UniqueConstraint
-from sqlmodel import Field, SQLModel
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from enum import StrEnum
+from uuid import uuid4
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def new_id() -> str:
     return str(uuid4())
 
 
-class ActivityCategory(str, Enum):
+class ActivityCategory(StrEnum):
     run = "run"
     hike = "hike"
     stair = "stair"  # stair stepper / stair climbing — included in week summary
@@ -33,96 +34,86 @@ WEEK_SUMMARY_CATEGORIES = (
 )
 
 
-class ReviewStatus(str, Enum):
+class ReviewStatus(StrEnum):
     pending = "pending"
     confirmed = "confirmed"
 
 
-class SyncStatus(str, Enum):
+class SyncStatus(StrEnum):
     running = "running"
     success = "success"
     failed = "failed"
 
 
-class User(SQLModel, table=True):
-    __tablename__ = "users"
-
-    id: str = Field(default_factory=new_id, primary_key=True)
-    email: str = Field(index=True, unique=True)
+@dataclass
+class User:
+    id: str
+    email: str
     password_hash: str
-    timezone: str = Field(default="America/Denver")
-    created_at: datetime = Field(default_factory=utcnow)
+    timezone: str = "America/Denver"
+    created_at: datetime = field(default_factory=utcnow)
 
 
-class GarminSession(SQLModel, table=True):
+@dataclass
+class GarminSession:
     """Per-user encrypted Garmin Connect session (garth tokens)."""
 
-    __tablename__ = "garmin_sessions"
-
-    id: str = Field(default_factory=new_id, primary_key=True)
-    user_id: str = Field(foreign_key="users.id", index=True, unique=True)
-    encrypted_token: str = Field(sa_column=Column(Text))
-    garmin_email: Optional[str] = None
-    connected_at: datetime = Field(default_factory=utcnow)
-    last_success_at: Optional[datetime] = None
-    last_error: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    user_id: str
+    encrypted_token: str
+    id: str = field(default_factory=new_id)
+    garmin_email: str | None = None
+    connected_at: datetime = field(default_factory=utcnow)
+    last_success_at: datetime | None = None
+    last_error: str | None = None
 
 
-class Activity(SQLModel, table=True):
-    __tablename__ = "activities"
-    __table_args__ = (UniqueConstraint("user_id", "garmin_activity_id", name="uq_user_garmin_activity"),)
-
-    id: str = Field(default_factory=new_id, primary_key=True)
-    user_id: str = Field(foreign_key="users.id", index=True)
-    garmin_activity_id: str = Field(index=True)
-
+@dataclass
+class Activity:
+    user_id: str
+    garmin_activity_id: str
+    id: str = field(default_factory=new_id)
     name: str = ""
-    start_time: datetime = Field(index=True)
+    start_time: datetime = field(default_factory=utcnow)
     garmin_type: str = ""
-
-    suggested_category: ActivityCategory = Field(default=ActivityCategory.uncategorized)
-    category: ActivityCategory = Field(default=ActivityCategory.uncategorized, index=True)
-    review_status: ReviewStatus = Field(default=ReviewStatus.pending, index=True)
-
-    # Stored in metric; convert to mi/ft for display
-    distance_m: Optional[float] = None
-    elevation_gain_m: Optional[float] = None
-    duration_s: Optional[float] = None
-    active_calories: Optional[float] = None
-    avg_hr: Optional[float] = None
-    max_hr: Optional[float] = None
-    calories: Optional[float] = None
-
-    raw_json: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
-
-    synced_at: datetime = Field(default_factory=utcnow)
-    updated_at: datetime = Field(default_factory=utcnow)
+    suggested_category: ActivityCategory = ActivityCategory.uncategorized
+    category: ActivityCategory = ActivityCategory.uncategorized
+    review_status: ReviewStatus = ReviewStatus.pending
+    distance_m: float | None = None
+    elevation_gain_m: float | None = None
+    duration_s: float | None = None
+    active_calories: float | None = None
+    avg_hr: float | None = None
+    max_hr: float | None = None
+    calories: float | None = None
+    raw_json: str | None = None
+    synced_at: datetime = field(default_factory=utcnow)
+    updated_at: datetime = field(default_factory=utcnow)
 
 
-class SyncRun(SQLModel, table=True):
-    __tablename__ = "sync_runs"
-
-    id: str = Field(default_factory=new_id, primary_key=True)
-    user_id: str = Field(foreign_key="users.id", index=True)
-    status: SyncStatus = Field(default=SyncStatus.running)
-    started_at: datetime = Field(default_factory=utcnow)
-    finished_at: Optional[datetime] = None
-    range_start: Optional[datetime] = None
-    range_end: Optional[datetime] = None
+@dataclass
+class SyncRun:
+    user_id: str
+    id: str = field(default_factory=new_id)
+    status: SyncStatus = SyncStatus.running
+    started_at: datetime = field(default_factory=utcnow)
+    finished_at: datetime | None = None
+    range_start: datetime | None = None
+    range_end: datetime | None = None
     activities_fetched: int = 0
     activities_created: int = 0
     activities_updated: int = 0
-    error: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    error: str | None = None
+    # Worker cursor (YYYY-MM-DD) for chunked backfill; None = start of range
+    cursor: str | None = None
 
 
-class ShareLink(SQLModel, table=True):
+@dataclass
+class ShareLink:
     """Public read-only share token for weeks + charts."""
 
-    __tablename__ = "share_links"
-
-    id: str = Field(default_factory=new_id, primary_key=True)
-    user_id: str = Field(foreign_key="users.id", index=True)
-    token: str = Field(index=True, unique=True)
-    label: Optional[str] = None
-    created_at: datetime = Field(default_factory=utcnow)
-    revoked_at: Optional[datetime] = None
+    user_id: str
+    token: str
+    id: str = field(default_factory=new_id)
+    label: str | None = None
+    created_at: datetime = field(default_factory=utcnow)
+    revoked_at: datetime | None = None

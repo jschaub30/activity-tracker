@@ -1,10 +1,8 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
 from garmin_tracker.models import ActivityCategory, ReviewStatus, SyncStatus
-
 
 # ----- Auth -----
 
@@ -47,15 +45,15 @@ class GarminMfaRequest(BaseModel):
 
 class GarminStatusOut(BaseModel):
     connected: bool
-    garmin_email: Optional[str] = None
-    connected_at: Optional[datetime] = None
-    last_success_at: Optional[datetime] = None
-    last_error: Optional[str] = None
+    garmin_email: str | None = None
+    connected_at: datetime | None = None
+    last_success_at: datetime | None = None
+    last_error: str | None = None
 
 
 class GarminConnectResult(GarminStatusOut):
     needs_mfa: bool = False
-    message: Optional[str] = None
+    message: str | None = None
 
 
 # ----- Activities -----
@@ -70,26 +68,26 @@ class ActivityOut(BaseModel):
     suggested_category: ActivityCategory
     category: ActivityCategory
     review_status: ReviewStatus
-    distance_m: Optional[float] = None
-    elevation_gain_m: Optional[float] = None
-    distance_mi: Optional[float] = None
-    elevation_ft: Optional[float] = None
-    duration_s: Optional[float] = None
-    active_calories: Optional[float] = None
-    avg_hr: Optional[float] = None
-    max_hr: Optional[float] = None
-    calories: Optional[float] = None
+    distance_m: float | None = None
+    elevation_gain_m: float | None = None
+    distance_mi: float | None = None
+    elevation_ft: float | None = None
+    duration_s: float | None = None
+    active_calories: float | None = None
+    avg_hr: float | None = None
+    max_hr: float | None = None
+    calories: float | None = None
 
     model_config = {"from_attributes": True}
 
 
 class ActivityUpdate(BaseModel):
-    category: Optional[ActivityCategory] = None
-    review_status: Optional[ReviewStatus] = None
+    category: ActivityCategory | None = None
+    review_status: ReviewStatus | None = None
 
 
 class BulkConfirmRequest(BaseModel):
-    activity_ids: Optional[list[str]] = None  # None = confirm all pending for user
+    activity_ids: list[str] | None = None  # None = confirm all pending for user
     accept_suggested: bool = True
 
 
@@ -103,7 +101,7 @@ class WeekActivityOut(BaseModel):
     distance_mi: float
     elevation_ft: float
     calories: float = 0.0
-    duration_s: Optional[float] = None
+    duration_s: float | None = None
 
 
 class WeekDayOut(BaseModel):
@@ -136,14 +134,14 @@ class WeeksListOut(BaseModel):
 
 
 class SyncStatusOut(BaseModel):
-    id: Optional[str] = None
-    status: Optional[SyncStatus] = None
-    started_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
+    id: str | None = None
+    status: SyncStatus | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
     activities_fetched: int = 0
     activities_created: int = 0
     activities_updated: int = 0
-    error: Optional[str] = None
+    error: str | None = None
     is_running: bool = False
 
 
@@ -156,15 +154,15 @@ class SyncStartOut(BaseModel):
 
 
 class ShareLinkCreate(BaseModel):
-    label: Optional[str] = Field(default=None, max_length=120)
+    label: str | None = Field(default=None, max_length=120)
 
 
 class ShareLinkOut(BaseModel):
     id: str
     token: str
-    label: Optional[str] = None
+    label: str | None = None
     created_at: datetime
-    revoked_at: Optional[datetime] = None
+    revoked_at: datetime | None = None
     # Absolute path on the SPA (frontend prefixes origin)
     path: str
 
@@ -174,7 +172,7 @@ class ShareLinkOut(BaseModel):
 class PublicShareMeta(BaseModel):
     """Minimal public metadata for a valid share token."""
 
-    label: Optional[str] = None
+    label: str | None = None
     timezone: str
     # Non-identifying display name (email local-part only)
     owner_display: str

@@ -1,18 +1,17 @@
 """Metric storage, imperial display (miles / feet)."""
 
-from typing import Optional
 
 METERS_PER_MILE = 1609.344
 METERS_PER_FOOT = 0.3048
 
 
-def m_to_mi(meters: Optional[float]) -> Optional[float]:
+def m_to_mi(meters: float | None) -> float | None:
     if meters is None:
         return None
     return round(meters / METERS_PER_MILE, 2)
 
 
-def m_to_ft(meters: Optional[float]) -> Optional[float]:
+def m_to_ft(meters: float | None) -> float | None:
     if meters is None:
         return None
     return round(meters / METERS_PER_FOOT, 0)

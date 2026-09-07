@@ -3,9 +3,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# backend/ is the project root for this package
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DB_PATH = BACKEND_ROOT / "data" / "garmin_tracker.db"
 
 
 class Settings(BaseSettings):
@@ -23,31 +21,33 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     algorithm: str = "HS256"
 
-    # Fernet key for encrypting Garmin session tokens (url-safe base64 32-byte key)
-    # Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Fernet key for encrypting Garmin session tokens
     token_encryption_key: str = ""
 
-    # Database
-    database_url: str = f"sqlite:///{DEFAULT_DB_PATH}"
+    # DynamoDB
+    dynamodb_table: str = "garmin-tracker"
+    dynamodb_endpoint: str = ""  # empty = real AWS; local e.g. http://127.0.0.1:8000
+    aws_region: str = "us-west-2"
+
+    # Optional S3 bucket for activity raw JSON
+    data_bucket: str = ""
+
+    # Sync transport: inline (local) or sqs (AWS worker)
+    sync_backend: str = "inline"
+    sync_queue_url: str = ""
+    sync_chunk_days: int = 14
+
+    # CloudFront → Function URL shared secret; empty disables the check (local)
+    origin_secret: str = ""
 
     # App defaults
     default_timezone: str = "America/Denver"
     backfill_days: int = 365
     cors_origins: str = "http://localhost:5180,http://127.0.0.1:5180"
 
-    # Optional directory of a built React app to serve from the API
-    static_dir: str = ""
-
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
-
-    @property
-    def static_path(self) -> Path | None:
-        if not self.static_dir:
-            return None
-        p = Path(self.static_dir)
-        return p if p.is_dir() else None
 
 
 @lru_cache

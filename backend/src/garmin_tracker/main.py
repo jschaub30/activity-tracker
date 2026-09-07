@@ -1,14 +1,21 @@
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 from garmin_tracker.config import get_settings
 from garmin_tracker.db import init_db
-from garmin_tracker.routers import account, activities, auth, garmin, public, share, sync, weeks
+from garmin_tracker.routers import (
+    account,
+    activities,
+    auth,
+    garmin,
+    public,
+    share,
+    sync,
+    weeks,
+)
 
 
 @asynccontextmanager
@@ -29,6 +36,13 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def origin_secret_gate(request: Request, call_next):
+        secret = get_settings().origin_secret
+        if secret and request.headers.get("x-origin-secret") != secret:
+            return JSONResponse({"detail": "Forbidden"}, status_code=403)
+        return await call_next(request)
+
     app.include_router(auth.router)
     app.include_router(account.router)
     app.include_router(garmin.router)
@@ -42,30 +56,7 @@ def create_app() -> FastAPI:
     def health():
         return {"status": "ok", "app": settings.app_name}
 
-    static_path = settings.static_path
-    if static_path is not None:
-        _mount_spa(app, static_path)
-
     return app
-
-
-def _mount_spa(app: FastAPI, static_path: Path) -> None:
-    """Serve Vite build: assets/ + SPA fallback for client routes."""
-    assets = static_path / "assets"
-    if assets.is_dir():
-        app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
-
-    index = static_path / "index.html"
-
-    @app.get("/{full_path:path}")
-    async def spa_fallback(full_path: str):
-        # API routes are registered first; this only catches non-API browser routes
-        if full_path.startswith("api/") or full_path == "api":
-            raise HTTPException(status_code=404, detail="Not found")
-        candidate = static_path / full_path
-        if full_path and candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(index)
 
 
 app = create_app()

@@ -12,3 +12,9 @@ dist/
 backend/data/*.db
 *.egg-info/
 .python-version
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log

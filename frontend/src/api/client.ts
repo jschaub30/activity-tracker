@@ -1,7 +1,5 @@
-// Same-origin when the API serves the SPA. Local dev defaults to the API port.
-const API_BASE =
-  import.meta.env.VITE_API_URL ??
-  (import.meta.env.DEV ? 'http://127.0.0.1:8010' : '')
+// Same-origin in production (CloudFront /api/*). Dev uses the Vite /api proxy.
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 function getToken(): string | null {
   return localStorage.getItem('token')

@@ -1,11 +1,10 @@
-"""Sync activities from Garmin Connect into the local database."""
+"""Sync activities from Garmin Connect into DynamoDB."""
 
 from __future__ import annotations
 
+import json
 import logging
-from datetime import date, datetime, timedelta, timezone
-
-from sqlmodel import Session, select
+from datetime import UTC, date, datetime, timedelta
 
 from garmin_tracker.config import get_settings
 from garmin_tracker.models import (
@@ -20,40 +19,27 @@ from garmin_tracker.models import (
 from garmin_tracker.services.activity_normalize import normalize_activity
 from garmin_tracker.services.crypto import decrypt_token, encrypt_token
 from garmin_tracker.services.garmin_client import GarminClient, GarminClientError
+from garmin_tracker.services.week_service import rebuild_weeks_for_times
+from garmin_tracker.store import repo
 
 logger = logging.getLogger(__name__)
 
-# Overlap window so late-arriving activities are not missed
 INCREMENTAL_OVERLAP_DAYS = 3
 
 
 class SyncService:
-    def __init__(self, session: Session, user: User):
-        self.session = session
+    def __init__(self, user: User):
         self.user = user
         self.settings = get_settings()
 
     def is_running(self) -> bool:
-        stmt = (
-            select(SyncRun)
-            .where(SyncRun.user_id == self.user.id, SyncRun.status == SyncStatus.running)
-            .limit(1)
-        )
-        return self.session.exec(stmt).first() is not None
+        return repo.is_sync_running(self.user.id)
 
     def latest_run(self) -> SyncRun | None:
-        stmt = (
-            select(SyncRun)
-            .where(SyncRun.user_id == self.user.id)
-            .order_by(SyncRun.started_at.desc())  # type: ignore[attr-defined]
-            .limit(1)
-        )
-        return self.session.exec(stmt).first()
+        return repo.latest_sync_run(self.user.id)
 
     def garmin_row(self) -> GarminSession | None:
-        return self.session.exec(
-            select(GarminSession).where(GarminSession.user_id == self.user.id)
-        ).first()
+        return repo.get_garmin(self.user.id)
 
     def create_running_sync(self) -> SyncRun:
         if self.is_running():
@@ -67,38 +53,39 @@ class SyncService:
         run = SyncRun(
             user_id=self.user.id,
             status=SyncStatus.running,
-            range_start=datetime.combine(range_start, datetime.min.time(), tzinfo=timezone.utc),
-            range_end=datetime.combine(range_end, datetime.max.time(), tzinfo=timezone.utc),
+            range_start=datetime.combine(range_start, datetime.min.time(), tzinfo=UTC),
+            range_end=datetime.combine(range_end, datetime.max.time(), tzinfo=UTC),
+            cursor=range_start.isoformat(),
         )
-        self.session.add(run)
-        self.session.commit()
-        self.session.refresh(run)
+        repo.put_sync_run(run)
         return run
 
     def _has_activities(self) -> bool:
-        stmt = select(Activity.id).where(Activity.user_id == self.user.id).limit(1)
-        return self.session.exec(stmt).first() is not None
+        return repo.has_activities(self.user.id)
 
     def _compute_range(self, garmin: GarminSession) -> tuple[date, date]:
-        """Choose fetch window: full backfill vs short incremental overlap.
-
-        Incremental sync only runs when we already have activities *and* a prior
-        successful sync. Otherwise (first connect, or after data wipe) we pull
-        the full ``backfill_days`` window (default 365).
-        """
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
         if garmin.last_success_at and self._has_activities():
             last = garmin.last_success_at
             if last.tzinfo is None:
-                last = last.replace(tzinfo=timezone.utc)
+                last = last.replace(tzinfo=UTC)
             start = (last - timedelta(days=INCREMENTAL_OVERLAP_DAYS)).date()
         else:
             start = today - timedelta(days=self.settings.backfill_days)
         return start, today
 
     def execute_sync(self, run_id: str) -> SyncRun:
-        """Fetch from Garmin and upsert. Call from request or background worker."""
-        run = self.session.get(SyncRun, run_id)
+        """Run remaining chunks inline until the range is done."""
+        run = repo.get_sync_run(self.user.id, run_id)
+        if not run:
+            raise RuntimeError("Sync run not found")
+        while True:
+            run = self.execute_chunk(run.id)
+            if run.status != SyncStatus.running:
+                return run
+
+    def execute_chunk(self, run_id: str) -> SyncRun:
+        run = repo.get_sync_run(self.user.id, run_id)
         if not run or run.user_id != self.user.id:
             raise RuntimeError("Sync run not found")
 
@@ -111,39 +98,47 @@ class SyncService:
         except Exception as exc:  # noqa: BLE001
             return self._fail(run, f"Could not decrypt Garmin session: {exc}")
 
+        if not run.range_start or not run.range_end:
+            return self._fail(run, "Sync run missing date range")
+
+        chunk_days = max(1, self.settings.sync_chunk_days)
+        cursor = (
+            date.fromisoformat(run.cursor) if run.cursor else run.range_start.date()
+        )
+        range_end = run.range_end.date()
+        chunk_end = min(cursor + timedelta(days=chunk_days - 1), range_end)
+
         try:
             client = GarminClient(email=garmin.garmin_email)
             client.load_session(token)
-            range_start, range_end = self._compute_range(garmin)
-            activities = client.get_activities(range_start, range_end)
+            activities = client.get_activities(cursor, chunk_end)
 
-            # Persist refreshed tokens
             try:
                 garmin.encrypted_token = encrypt_token(client.dump_session())
+                repo.put_garmin(garmin)
             except Exception:  # noqa: BLE001
                 logger.debug("Could not re-encrypt refreshed tokens", exc_info=True)
 
-            created, updated = self._upsert_activities(activities)
+            created, updated, touched = self._upsert_activities(activities)
+            run.activities_fetched += len(activities)
+            run.activities_created += created
+            run.activities_updated += updated
+            rebuild_weeks_for_times(self.user, touched)
 
-            run.activities_fetched = len(activities)
-            run.activities_created = created
-            run.activities_updated = updated
-            run.status = SyncStatus.success
-            run.finished_at = utcnow()
-            run.error = None
-            run.range_start = datetime.combine(
-                range_start, datetime.min.time(), tzinfo=timezone.utc
-            )
-            run.range_end = datetime.combine(
-                range_end, datetime.max.time(), tzinfo=timezone.utc
-            )
+            more = chunk_end < range_end
+            if more:
+                run.cursor = (chunk_end + timedelta(days=1)).isoformat()
+                run.status = SyncStatus.running
+            else:
+                run.cursor = None
+                run.status = SyncStatus.success
+                run.finished_at = utcnow()
+                run.error = None
+                garmin.last_success_at = utcnow()
+                garmin.last_error = None
+                repo.put_garmin(garmin)
 
-            garmin.last_success_at = utcnow()
-            garmin.last_error = None
-            self.session.add(garmin)
-            self.session.add(run)
-            self.session.commit()
-            self.session.refresh(run)
+            repo.put_sync_run(run)
             return run
 
         except GarminClientError as exc:
@@ -153,14 +148,16 @@ class SyncService:
             return self._fail(run, f"Sync failed: {exc}", garmin=garmin)
 
     def start_sync(self) -> SyncRun:
-        """Create run and execute inline (simple local path)."""
         run = self.create_running_sync()
         return self.execute_sync(run.id)
 
-    def _upsert_activities(self, activities: list[dict]) -> tuple[int, int]:
+    def _upsert_activities(
+        self, activities: list[dict]
+    ) -> tuple[int, int, list[datetime]]:
         created = 0
         updated = 0
         now = utcnow()
+        touched: list[datetime] = []
 
         for raw in activities:
             try:
@@ -169,19 +166,15 @@ class SyncService:
                 logger.debug("Skipping unparseable activity: %s", raw.get("activityId"))
                 continue
 
-            existing = self.session.exec(
-                select(Activity).where(
-                    Activity.user_id == self.user.id,
-                    Activity.garmin_activity_id == data["garmin_activity_id"],
-                )
-            ).first()
-
+            existing = repo.get_activity_by_garmin_id(
+                self.user.id, data["garmin_activity_id"]
+            )
+            raw_json = data.pop("raw_json", None)
             if existing:
                 existing.name = data["name"]
                 existing.start_time = data["start_time"]
                 existing.garmin_type = data["garmin_type"]
                 existing.suggested_category = data["suggested_category"]
-                # Do not override user-confirmed category / review
                 if existing.review_status != ReviewStatus.confirmed:
                     existing.category = data["suggested_category"]
                 existing.distance_m = data["distance_m"]
@@ -191,10 +184,11 @@ class SyncService:
                 existing.calories = data["calories"]
                 existing.avg_hr = data["avg_hr"]
                 existing.max_hr = data["max_hr"]
-                existing.raw_json = data["raw_json"]
                 existing.synced_at = now
                 existing.updated_at = now
-                self.session.add(existing)
+                repo.put_activity(existing, raw_json=raw_json)
+                if existing.review_status == ReviewStatus.confirmed:
+                    touched.append(existing.start_time)
                 updated += 1
             else:
                 act = Activity(
@@ -213,15 +207,13 @@ class SyncService:
                     calories=data["calories"],
                     avg_hr=data["avg_hr"],
                     max_hr=data["max_hr"],
-                    raw_json=data["raw_json"],
                     synced_at=now,
                     updated_at=now,
                 )
-                self.session.add(act)
+                repo.put_activity(act, raw_json=raw_json)
                 created += 1
 
-        self.session.commit()
-        return created, updated
+        return created, updated, touched
 
     def _fail(
         self,
@@ -232,10 +224,33 @@ class SyncService:
         run.status = SyncStatus.failed
         run.finished_at = utcnow()
         run.error = message
-        self.session.add(run)
+        repo.put_sync_run(run)
         if garmin:
             garmin.last_error = message
-            self.session.add(garmin)
-        self.session.commit()
-        self.session.refresh(run)
+            repo.put_garmin(garmin)
         return run
+
+
+def run_sync_job(user_id: str, run_id: str) -> None:
+    user = repo.get_user(user_id)
+    if not user:
+        return
+    SyncService(user).execute_sync(run_id)
+
+
+def enqueue_sync(user_id: str, run_id: str) -> None:
+    """Send SQS or run inline (call from a background thread locally)."""
+    settings = get_settings()
+    backend = (settings.sync_backend or "inline").lower()
+    if backend == "sqs":
+        if not settings.sync_queue_url:
+            raise RuntimeError("SYNC_QUEUE_URL is required when SYNC_BACKEND=sqs")
+        import boto3
+
+        sqs = boto3.client("sqs", region_name=settings.aws_region)
+        sqs.send_message(
+            QueueUrl=settings.sync_queue_url,
+            MessageBody=json.dumps({"user_id": user_id, "run_id": run_id}),
+        )
+        return
+    run_sync_job(user_id, run_id)
