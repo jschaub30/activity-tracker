@@ -29,6 +29,10 @@ def _session_kwargs() -> dict[str, Any]:
     kwargs: dict[str, Any] = {"region_name": settings.aws_region}
     if settings.dynamodb_endpoint:
         kwargs["endpoint_url"] = settings.dynamodb_endpoint
+        # DynamoDB Local accepts any keys; do not put these in .env (mise
+        # would leak them into terraform / aws cli).
+        kwargs["aws_access_key_id"] = "local"
+        kwargs["aws_secret_access_key"] = "local"
     return kwargs
 
 
