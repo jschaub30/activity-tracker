@@ -1,5 +1,13 @@
 // Same-origin in production (CloudFront /api/*). Dev uses the Vite /api proxy.
-const API_BASE = import.meta.env.VITE_API_URL ?? ''
+// Never bake a localhost API URL into a production bundle.
+const API_BASE = (() => {
+  const raw = import.meta.env.VITE_API_URL as string | undefined
+  if (!raw) return ''
+  if (import.meta.env.PROD && /^(https?:\/\/)?(127\.0\.0\.1|localhost)\b/i.test(raw)) {
+    return ''
+  }
+  return raw
+})()
 
 function getToken(): string | null {
   return localStorage.getItem('token')

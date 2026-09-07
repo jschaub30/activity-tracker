@@ -193,7 +193,8 @@ run = "npm run lint"
 [tasks.build]
 description = "Production build of the frontend"
 dir = "{{config_root}}/frontend"
-run = "npm run build"
+# Unset so a leftover local URL is not inlined into the CloudFront bundle.
+run = "env -u VITE_API_URL npm run build"
 
 [tasks.check]
 description = "test + lint + frontend build"
@@ -300,7 +301,7 @@ ROOT="{{config_root}}"
 REGION="${AWS_REGION:-us-west-2}"
 TAG="${LAMBDA_IMAGE_TAG:-$(git -C "$ROOT" rev-parse --short HEAD)}"
 cd "$ROOT/frontend"
-npx vite build
+env -u VITE_API_URL npx vite build
 cd "$ROOT"
 mise run deploy:image
 terraform -chdir="$ROOT/infra" apply -auto-approve -var="lambda_image_tag=$TAG"
