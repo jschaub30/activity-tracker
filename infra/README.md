@@ -43,4 +43,4 @@ Empty the frontend/data buckets first if destroy fails on non-empty S3.
 
 ## State
 
-Remote state: `s3://schaubj-terraform/activity-tracker/terraform.tfstate` (`backend.tf`). `*.tfstate*` is gitignored.
+Remote state: `s3://schaubj-terraform/activity-tracker/terraform.tfstate` (`backend.tf`). Locking uses an S3 lockfile (`use_lockfile`). `*.tfstate*` is gitignored.
