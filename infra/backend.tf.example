@@ -1,11 +1,2 @@
-# Optional remote state. Copy to backend.tf after the buckets exist.
-#
-# terraform {
-#   backend "s3" {
-#     bucket         = "your-tf-state-bucket"
-#     key            = "garmin-tracker/terraform.tfstate"
-#     region         = "us-west-2"
-#     dynamodb_table = "your-tf-lock-table"
-#     encrypt        = true
-#   }
-# }
+# Remote state lives in s3://schaubj-terraform/activity-tracker/terraform.tfstate
+# See backend.tf.

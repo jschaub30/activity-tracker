@@ -41,6 +41,6 @@ terraform destroy
 
 Empty the frontend/data buckets first if destroy fails on non-empty S3.
 
-## Local state
+## State
 
-`*.tfstate*` is gitignored. To move state to S3 later, copy `backend.tf.example` → `backend.tf`.
+Remote state: `s3://schaubj-terraform/activity-tracker/terraform.tfstate` (`backend.tf`). `*.tfstate*` is gitignored.
