@@ -7,6 +7,8 @@ Tagged via provider `default_tags`:
 
 Resources that AWS does not allow tags on (Lambda Function URL permissions, some OAC internals) are untagged.
 
+Lambda Function URLs need `lambda:InvokeFunction` as well as the auto-added `InvokeFunctionUrl` policy, or anonymous URL calls return 403. CloudFront maps those 403s to `index.html` (SPA fallback), which looks like the API is missing.
+
 ## First apply (chicken-and-egg image)
 
 Lambda needs an ECR image that does not exist until you push one.

@@ -68,6 +68,14 @@ resource "aws_lambda_function_url" "api" {
   authorization_type = "NONE"
 }
 
+# Function URL auto-adds InvokeFunctionUrl. Anonymous URL calls also need InvokeFunction.
+resource "aws_lambda_permission" "function_invoke" {
+  statement_id  = "AllowPublicInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.api.function_name
+  principal     = "*"
+}
+
 resource "aws_lambda_event_source_mapping" "sync" {
   event_source_arn = aws_sqs_queue.sync.arn
   function_name    = aws_lambda_function.worker.arn
