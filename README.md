@@ -1,6 +1,8 @@
 # Garmin Tracker
 
-Multi-user web app to sync Garmin Connect activities and view a **Sunday → Saturday** weekly summary of **runs and hikes** (distance + elevation in **miles / feet**).
+Multi-user web app to sync **all** Garmin Connect activities and view a **Sunday → Saturday** weekly summary. Distance and elevation totals use runs, hikes, and stairs (**miles / feet**); calories include every activity.
+
+Garmin password is never stored. See [How Garmin credentials are handled](docs/garmin-credentials.md).
 
 | Stack | |
 |-------|--|
@@ -25,6 +27,7 @@ garmin-tracker/
 │   └── Dockerfile           # Lambda image
 ├── frontend/                # Vite React SPA
 ├── infra/                   # Terraform
+├── docs/
 └── README.md
 ```
 

@@ -12,6 +12,9 @@ function absoluteShareUrl(path: string): string {
   return `${window.location.origin}${path}`
 }
 
+const GARMIN_CREDENTIALS_DOC =
+  'https://github.com/jschaub30/activity-tracker/blob/main/docs/garmin-credentials.md'
+
 export function SettingsPage() {
   const { sync, refresh: refreshSync, startSync } = useSync()
   const [status, setStatus] = useState<GarminStatus | null>(null)
@@ -279,6 +282,17 @@ export function SettingsPage() {
 
       <section className="card">
         <h2>Garmin Connect</h2>
+        <p className="muted small">
+          Your Garmin password is never stored. Sync uses an encrypted session,
+          not your credentials.{' '}
+          <a
+            href={GARMIN_CREDENTIALS_DOC}
+            target="_blank"
+            rel="noreferrer"
+          >
+            How credentials are handled
+          </a>
+        </p>
         {status?.connected ? (
           <>
             <p>
