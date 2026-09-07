@@ -289,7 +289,11 @@ docker build --platform linux/arm64 --provenance=false --sbom=false \
   -t "$REPO_URL:$TAG" -t "$REPO_URL:bootstrap" "$ROOT/backend"
 docker push "$REPO_URL:$TAG"
 docker push "$REPO_URL:bootstrap"
-echo "Pushed $REPO_URL:$TAG"
+aws lambda update-function-code --function-name garmin-tracker-api \
+  --image-uri "$REPO_URL:$TAG" --region "$REGION" --query 'LastUpdateStatus' --output text
+aws lambda update-function-code --function-name garmin-tracker-worker \
+  --image-uri "$REPO_URL:$TAG" --region "$REGION" --query 'LastUpdateStatus' --output text
+echo "Pushed and pointed Lambdas at $REPO_URL:$TAG"
 """
 
 [tasks.deploy]
@@ -299,12 +303,11 @@ run = """
 set -euo pipefail
 ROOT="{{config_root}}"
 REGION="${AWS_REGION:-us-west-2}"
-TAG="${LAMBDA_IMAGE_TAG:-$(git -C "$ROOT" rev-parse --short HEAD)}"
 cd "$ROOT/frontend"
 env -u VITE_API_URL npx vite build
 cd "$ROOT"
 mise run deploy:image
-terraform -chdir="$ROOT/infra" apply -auto-approve -var="lambda_image_tag=$TAG"
+terraform -chdir="$ROOT/infra" apply -auto-approve
 BUCKET="$(terraform -chdir="$ROOT/infra" output -raw frontend_bucket)"
 DIST="$(terraform -chdir="$ROOT/infra" output -raw cloudfront_distribution_id)"
 aws s3 sync "$ROOT/frontend/dist" "s3://$BUCKET/" --delete --region "$REGION"

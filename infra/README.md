@@ -25,7 +25,9 @@ cd infra
 terraform apply
 ```
 
-Subsequent deploys: `mise run deploy` from the repo root (SPA sync + image + apply + CloudFront invalidation).
+Subsequent deploys: `mise run deploy` from the repo root (SPA sync + image + Lambda update + CloudFront invalidation).
+
+Lambda `image_uri` is ignored by Terraform after create (`lifecycle.ignore_changes`). Image rolls go through `mise run deploy:image`, which pushes ECR and calls `aws lambda update-function-code`. A plain `terraform apply` will not revert the running tag to `bootstrap`.
 
 ## Optional custom domain
 
