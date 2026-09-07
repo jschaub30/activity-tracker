@@ -98,7 +98,7 @@ def _activity_from_item(item: dict[str, Any]) -> Activity:
             item.get("suggested_category") or "uncategorized"
         ),
         category=ActivityCategory(item.get("category") or "uncategorized"),
-        review_status=ReviewStatus(item.get("review_status") or "pending"),
+        review_status=ReviewStatus(item.get("review_status") or "confirmed"),
         distance_m=item.get("distance_m"),
         elevation_gain_m=item.get("elevation_gain_m"),
         duration_s=item.get("duration_s"),
@@ -354,14 +354,6 @@ def has_activities(user_id: str) -> bool:
         Limit=1,
     )
     return bool(resp.get("Items"))
-
-
-def list_pending(user_id: str, limit: int = 100) -> list[Activity]:
-    acts = [
-        a for a in list_activities(user_id) if a.review_status == ReviewStatus.pending
-    ]
-    acts.sort(key=lambda a: a.start_time, reverse=True)
-    return acts[:limit]
 
 
 def put_week(user_id: str, sunday: str, payload: dict[str, Any]) -> None:

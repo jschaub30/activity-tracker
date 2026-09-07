@@ -77,7 +77,7 @@ class Activity:
     garmin_type: str = ""
     suggested_category: ActivityCategory = ActivityCategory.uncategorized
     category: ActivityCategory = ActivityCategory.uncategorized
-    review_status: ReviewStatus = ReviewStatus.pending
+    review_status: ReviewStatus = ReviewStatus.confirmed
     distance_m: float | None = None
     elevation_gain_m: float | None = None
     duration_s: float | None = None

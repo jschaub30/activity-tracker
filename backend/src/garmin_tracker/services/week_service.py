@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from garmin_tracker.models import WEEK_SUMMARY_CATEGORIES, Activity, ReviewStatus, User
+from garmin_tracker.models import WEEK_SUMMARY_CATEGORIES, Activity, User
 from garmin_tracker.schemas import (
     WeekActivityOut,
     WeekDayOut,
@@ -43,17 +43,16 @@ def _iso_z(dt: datetime) -> str:
     return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
-def _fetch_confirmed_week_activities(
+def _fetch_week_activities(
     user: User,
     week_start: date,
     tz: ZoneInfo,
 ) -> list[Activity]:
-    """All confirmed activities for the week (any category)."""
+    """All activities for the week (any category)."""
     start_utc, end_utc = week_bounds_utc(week_start, tz)
-    acts = repo.list_activities(
+    return repo.list_activities(
         user.id, start_iso=_iso_z(start_utc), end_iso=_iso_z(end_utc)
     )
-    return [a for a in acts if a.review_status == ReviewStatus.confirmed]
 
 
 def week_from_activities(
@@ -121,7 +120,7 @@ def build_week(user: User, week_start_str: str | None = None) -> WeekOut:
     tz_name = user.timezone or "America/Denver"
     tz = ZoneInfo(tz_name)
     week_start = parse_week_start(week_start_str, tz_name)
-    activities = _fetch_confirmed_week_activities(user, week_start, tz)
+    activities = _fetch_week_activities(user, week_start, tz)
     week = week_from_activities(user, week_start, activities)
     persist_week(user, week)
     return week
@@ -148,13 +147,9 @@ def build_weeks_list(user: User, count: int = 52) -> WeeksListOut:
     oldest = current_sunday - timedelta(weeks=count - 1)
     start_utc, _ = week_bounds_utc(oldest, tz)
     _, end_utc = week_bounds_utc(current_sunday, tz)
-    acts = [
-        a
-        for a in repo.list_activities(
-            user.id, start_iso=_iso_z(start_utc), end_iso=_iso_z(end_utc)
-        )
-        if a.review_status == ReviewStatus.confirmed
-    ]
+    acts = repo.list_activities(
+        user.id, start_iso=_iso_z(start_utc), end_iso=_iso_z(end_utc)
+    )
     by_sunday: dict[str, list[Activity]] = {}
     for act in acts:
         st = act.start_time

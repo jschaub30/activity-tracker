@@ -49,39 +49,4 @@ def test_upsert_by_garmin_id_preserves_confirmed_category():
     assert again.distance_m == 2000
 
 
-def test_pending_review_order():
-    user_id = str(uuid4())
-    repo.create_user(
-        User(id=user_id, email=f"{user_id}@example.com", password_hash="x")
-    )
-    older = datetime(2026, 1, 1, tzinfo=UTC)
-    newer = datetime(2026, 2, 1, tzinfo=UTC)
-    repo.put_activity(
-        Activity(
-            user_id=user_id,
-            garmin_activity_id="old",
-            name="Old",
-            start_time=older,
-            review_status=ReviewStatus.pending,
-        )
-    )
-    repo.put_activity(
-        Activity(
-            user_id=user_id,
-            garmin_activity_id="new",
-            name="New",
-            start_time=newer,
-            review_status=ReviewStatus.pending,
-        )
-    )
-    repo.put_activity(
-        Activity(
-            user_id=user_id,
-            garmin_activity_id="done",
-            name="Done",
-            start_time=newer,
-            review_status=ReviewStatus.confirmed,
-        )
-    )
-    pending = repo.list_pending(user_id)
-    assert [a.garmin_activity_id for a in pending] == ["new", "old"]
+

@@ -96,6 +96,18 @@ a:hover {
   padding: 0;
 }
 
+.sync-banner {
+  background: #1e3a5f;
+  border-bottom: 1px solid var(--accent-dim);
+  color: #d6e8fb;
+  padding: 0.55rem 1.5rem;
+  font-size: 0.92rem;
+  text-align: center;
+  position: sticky;
+  top: 3.2rem;
+  z-index: 9;
+}
+
 .main {
   width: min(1200px, 100%);
   margin: 0 auto;

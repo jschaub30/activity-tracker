@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
-import type { DeleteDataResult, GarminStatus, ShareLink, SyncStatus } from '../types'
+import { useSync } from '../lib/sync'
+import type { DeleteDataResult, GarminStatus, ShareLink } from '../types'
 
 interface ConnectResult extends GarminStatus {
   needs_mfa?: boolean
@@ -12,8 +13,8 @@ function absoluteShareUrl(path: string): string {
 }
 
 export function SettingsPage() {
+  const { sync, refresh: refreshSync, startSync } = useSync()
   const [status, setStatus] = useState<GarminStatus | null>(null)
-  const [sync, setSync] = useState<SyncStatus | null>(null)
   const [shares, setShares] = useState<ShareLink[]>([])
   const [shareLabel, setShareLabel] = useState('')
   const [email, setEmail] = useState('')
@@ -26,7 +27,7 @@ export function SettingsPage() {
 
   async function refresh() {
     setStatus(await api<GarminStatus>('/api/garmin/status'))
-    setSync(await api<SyncStatus>('/api/sync/status'))
+    await refreshSync()
     setShares(await api<ShareLink[]>('/api/share'))
   }
 
@@ -35,17 +36,6 @@ export function SettingsPage() {
       setError(err instanceof Error ? err.message : 'Failed to load settings'),
     )
   }, [])
-
-  // Poll sync status while running
-  useEffect(() => {
-    if (!sync?.is_running && sync?.status !== 'running') return
-    const t = setInterval(() => {
-      void api<SyncStatus>('/api/sync/status')
-        .then(setSync)
-        .catch(() => undefined)
-    }, 2000)
-    return () => clearInterval(t)
-  }, [sync?.is_running, sync?.status])
 
   async function onConnect(e: FormEvent) {
     e.preventDefault()
@@ -111,7 +101,7 @@ export function SettingsPage() {
     setError(null)
     setBusy(true)
     try {
-      const res = await api<{ message: string }>('/api/sync', { method: 'POST' })
+      const res = await startSync()
       setMessage(res.message)
       await refresh()
     } catch (err) {
@@ -213,9 +203,9 @@ export function SettingsPage() {
       <section className="card">
         <h2>Share link (read-only)</h2>
         <p className="muted small">
-          Anyone with the link can view your weekly summary and charts (confirmed
-          activities; mi/ft from runs, hikes, and stairs; calories from all).
-          They cannot sync, edit, or see review data.
+          Anyone with the link can view your weekly summary and charts (mi/ft
+          from runs, hikes, and stairs; calories from all). They cannot sync or
+          edit.
         </p>
         <form onSubmit={createShare} className="stack">
           <label>
@@ -394,9 +384,9 @@ export function SettingsPage() {
           <p className="muted">No sync runs yet</p>
         )}
         <p className="muted small" style={{ marginTop: '0.75rem' }}>
-          After a successful sync, open <strong>Review</strong> to confirm
-          categories. All confirmed activities appear on the week grid (mi/ft
-          from runs, hikes, and stairs; calories from all).
+          Synced activities appear on the week grid automatically (mi/ft from
+          runs, hikes, and stairs; calories from all). You can re-label an
+          activity from its detail page.
         </p>
       </section>
 

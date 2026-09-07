@@ -1,6 +1,6 @@
 # Garmin Tracker
 
-Multi-user web app to sync Garmin Connect activities, review/categorize workouts, and view a **Sunday → Saturday** weekly summary of **runs and hikes** (distance + elevation in **miles / feet**).
+Multi-user web app to sync Garmin Connect activities and view a **Sunday → Saturday** weekly summary of **runs and hikes** (distance + elevation in **miles / feet**).
 
 | Stack | |
 |-------|--|
@@ -80,11 +80,10 @@ Vite proxies `/api` to the backend, so the SPA uses relative `/api` in both dev 
 - Multi-user **register / login** (JWT)
 - DynamoDB single table: users, garmin sessions, activities, sync runs, share links, week aggregates
 - Category model: `run` | `hike` | `stair` | `cardio` | `strength` | `uncategorized`
-- Review queue + re-label + bulk-confirm APIs
-- Week API (Sun–Sat, Denver) with **combined** mi/ft totals for confirmed runs + hikes + stair steppers
-- React pages: login, register, week table, review, activity detail, charts, share views, settings
+- Week API (Sun–Sat, Denver) with **combined** mi/ft totals for runs + hikes + stair steppers
+- React pages: login, register, week table, activity detail, charts, share views, settings
 - **Real Garmin Connect login** (MFA supported), encrypted session tokens
-- **Sync**: 365-day first backfill (chunked), then incremental; activities land in **Review**
+- **Sync**: 365-day first backfill, then incremental; activities appear on the week grid automatically
 
 ## How to download your Garmin data
 
@@ -93,9 +92,8 @@ Vite proxies `/api` to the backend, so the SPA uses relative `/api` in both dev 
 3. **Settings → Connect Garmin** with your Garmin email/password
    - If MFA is required, enter the code when prompted
 4. Initial sync starts automatically (last **365 days**)
-5. Open **Review**, confirm or re-label each activity
-6. Confirmed **runs / hikes / stairs** show on the **Week** table
-7. Use **Sync now** anytime for incremental updates
+5. Activities show on the **Week** table (runs / hikes / stairs for mi/ft)
+6. Use **Sync now** anytime for incremental updates
 
 Tokens are stored encrypted in DynamoDB — the Garmin password is not kept after login.
 

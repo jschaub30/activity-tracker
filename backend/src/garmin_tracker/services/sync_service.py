@@ -213,8 +213,7 @@ class SyncService:
                 existing.start_time = data["start_time"]
                 existing.garmin_type = data["garmin_type"]
                 existing.suggested_category = data["suggested_category"]
-                if existing.review_status != ReviewStatus.confirmed:
-                    existing.category = data["suggested_category"]
+                existing.review_status = ReviewStatus.confirmed
                 existing.distance_m = data["distance_m"]
                 existing.elevation_gain_m = data["elevation_gain_m"]
                 existing.duration_s = data["duration_s"]
@@ -225,8 +224,7 @@ class SyncService:
                 existing.synced_at = now
                 existing.updated_at = now
                 repo.put_activity(existing, raw_json=raw_json)
-                if existing.review_status == ReviewStatus.confirmed:
-                    touched.append(existing.start_time)
+                touched.append(existing.start_time)
                 updated += 1
             else:
                 act = Activity(
@@ -237,7 +235,7 @@ class SyncService:
                     garmin_type=data["garmin_type"],
                     suggested_category=data["suggested_category"],
                     category=data["suggested_category"],
-                    review_status=ReviewStatus.pending,
+                    review_status=ReviewStatus.confirmed,
                     distance_m=data["distance_m"],
                     elevation_gain_m=data["elevation_gain_m"],
                     duration_s=data["duration_s"],

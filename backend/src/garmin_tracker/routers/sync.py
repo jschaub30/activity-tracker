@@ -20,7 +20,7 @@ def start_sync(user: CurrentUser, background_tasks: BackgroundTasks) -> SyncStar
     else:
         background_tasks.add_task(run_sync_job, user.id, run.id)
     return SyncStartOut(
-        message="Sync started — activities will appear in Review when finished.",
+        message="Sync started — activities will appear on Week when finished.",
         sync_run_id=run.id,
     )
 

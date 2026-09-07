@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { formatCal, formatFt, formatMi, weekdayLabel } from '../lib/format'
-import type { SyncStatus, WeekDay, WeekSummary, WeeksList } from '../types'
+import { useReloadWhenSyncFinishes, useSync } from '../lib/sync'
+import type { WeekDay, WeekSummary, WeeksList } from '../types'
 
 function formatWeekLabel(start: string, end: string): string {
   const s = new Date(start + 'T12:00:00')
@@ -83,6 +84,8 @@ export function WeekPage({
   titleSuffix?: string
 } = {}) {
   const readOnly = Boolean(shareToken)
+  const { sync, startSync } = useSync()
+  const running = !!sync?.is_running || sync?.status === 'running'
   const [data, setData] = useState<WeeksList | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
@@ -92,7 +95,7 @@ export function WeekPage({
     ? `/api/public/${shareToken}/weeks?count=52`
     : '/api/weeks?count=52'
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -102,36 +105,18 @@ export function WeekPage({
     } finally {
       setLoading(false)
     }
-  }
+  }, [weeksUrl])
 
   useEffect(() => {
     void load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when share token changes
-  }, [weeksUrl])
+  }, [load])
 
-  async function triggerSync() {
+  useReloadWhenSyncFinishes(load, !readOnly)
+
+  async function onSync() {
     setSyncMsg(null)
     try {
-      const started = await api<{ message: string }>('/api/sync', { method: 'POST' })
-      setSyncMsg(started.message)
-      for (let i = 0; i < 90; i++) {
-        await new Promise((r) => setTimeout(r, 2000))
-        const status = await api<SyncStatus>('/api/sync/status')
-        if (!status.is_running && status.status !== 'running') {
-          if (status.error) {
-            setSyncMsg(status.error)
-          } else {
-            setSyncMsg(
-              `Sync ${status.status}: ${status.activities_created} new, ${status.activities_updated} updated (${status.activities_fetched} fetched)`,
-            )
-          }
-          await load()
-          return
-        }
-        setSyncMsg('Sync running…')
-      }
-      setSyncMsg('Sync still running — check Settings for status')
-      await load()
+      await startSync()
     } catch (err) {
       setSyncMsg(err instanceof Error ? err.message : 'Sync failed')
     }
@@ -155,8 +140,13 @@ export function WeekPage({
         </div>
         {!readOnly && (
           <div className="week-actions">
-            <button type="button" className="primary" onClick={triggerSync}>
-              Sync now
+            <button
+              type="button"
+              className="primary"
+              onClick={() => void onSync()}
+              disabled={running}
+            >
+              {running ? 'Syncing…' : 'Sync now'}
             </button>
           </div>
         )}
@@ -201,10 +191,8 @@ export function WeekPage({
           </>
         ) : (
           <>
-            Click an activity for details. Confirmed activities appear here —
-            distance and elevation count runs, hikes, and stairs; calories count
-            all categories. Review imports on the{' '}
-            <Link to="/review">Review</Link> page.
+            Click an activity for details. Distance and elevation count runs,
+            hikes, and stairs; calories count all categories.
           </>
         )}
       </p>

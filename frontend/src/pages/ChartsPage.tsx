@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Bar,
@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { api } from '../api/client'
 import { formatCal, formatFt, formatMi } from '../lib/format'
+import { useReloadWhenSyncFinishes } from '../lib/sync'
 import type { WeeksList } from '../types'
 
 interface ChartPoint {
@@ -100,13 +101,19 @@ export function ChartsPage({
     ? `/api/public/${shareToken}/weeks?count=52`
     : '/api/weeks?count=52'
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true)
     api<WeeksList>(weeksUrl)
       .then(setData)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load'))
       .finally(() => setLoading(false))
   }, [weeksUrl])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  useReloadWhenSyncFinishes(load, !readOnly)
 
   const points = useMemo<ChartPoint[]>(() => {
     if (!data) return []

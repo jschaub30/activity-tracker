@@ -36,7 +36,7 @@ export function ActivityPage() {
     setSaved(false)
     const updated = await api<Activity>(`/api/activities/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ category, review_status: 'confirmed' }),
+      body: JSON.stringify({ category }),
     })
     setActivity(updated)
     setSaved(true)
@@ -52,7 +52,7 @@ export function ActivityPage() {
   return (
     <div className="detail">
       <p>
-        <Link to="/">← Week</Link> · <Link to="/review">Review</Link>
+        <Link to="/">← Week</Link>
       </p>
       <h1>{activity.name || 'Activity'}</h1>
       <p className="muted">

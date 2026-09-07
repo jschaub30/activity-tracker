@@ -1,6 +1,6 @@
 """Map Garmin activity types to app categories.
 
-Walks default to hike (user can re-label on review).
+Walks default to hike (re-label from the activity detail page).
 Stair stepper / stair climbing → stair (included in week summary with runs & hikes).
 """
 

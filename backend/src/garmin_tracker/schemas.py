@@ -83,12 +83,6 @@ class ActivityOut(BaseModel):
 
 class ActivityUpdate(BaseModel):
     category: ActivityCategory | None = None
-    review_status: ReviewStatus | None = None
-
-
-class BulkConfirmRequest(BaseModel):
-    activity_ids: list[str] | None = None  # None = confirm all pending for user
-    accept_suggested: bool = True
 
 
 # ----- Weeks -----

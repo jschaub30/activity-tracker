@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { AuthProvider, useAuth } from './lib/auth'
+import { SyncProvider } from './lib/sync'
 import { ActivityPage } from './pages/ActivityPage'
 import { ChartsPage } from './pages/ChartsPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
-import { ReviewPage } from './pages/ReviewPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SharedViewPage } from './pages/SharedViewPage'
 import { WeekDetailPage } from './pages/WeekDetailPage'
@@ -21,7 +21,8 @@ function Protected({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <SyncProvider>
+        <Routes>
         <Route element={<Layout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -52,14 +53,7 @@ export default function App() {
               </Protected>
             }
           />
-          <Route
-            path="/review"
-            element={
-              <Protected>
-                <ReviewPage />
-              </Protected>
-            }
-          />
+          <Route path="/review" element={<Navigate to="/" replace />} />
           <Route
             path="/activities/:id"
             element={
@@ -77,7 +71,8 @@ export default function App() {
             }
           />
         </Route>
-      </Routes>
+        </Routes>
+      </SyncProvider>
     </AuthProvider>
   )
 }

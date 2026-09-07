@@ -108,7 +108,7 @@ def test_week_calories_include_all_categories(monkeypatch):
     ]
 
     monkeypatch.setattr(
-        "garmin_tracker.services.week_service._fetch_confirmed_week_activities",
+        "garmin_tracker.services.week_service._fetch_week_activities",
         lambda *args, **kwargs: activities,
     )
     monkeypatch.setattr(

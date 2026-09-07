@@ -21,8 +21,8 @@ Do not run `pytest` or `npm test` from the repo root. Frontend has no test scrip
 - Store metric (`distance_m`, `elevation_gain_m`); display **miles / feet**.
 - Garmin walks suggest **hike**; stair climbing / stepper is **stair**.
 - Week distance/elevation: confirmed **run + hike + stair** only (`WEEK_SUMMARY_CATEGORIES`).
-- Calories sum **all** confirmed activities; cardio/strength show duration + calories.
-- New Garmin activities land in **Review** (`pending`) until confirmed.
+- Calories sum **all** activities; cardio/strength show duration + calories.
+- Synced activities are auto-accepted (confirmed) with the suggested category.
 - Persistence is **DynamoDB** (single table). Local uses DynamoDB Local; do not default the API at `mise start` to a real AWS table.
 - Do not commit `backend/.env`, `*.tfstate`, `*.tfvars`, or `backend/data/`.
 
@@ -37,6 +37,6 @@ Do not run `pytest` or `npm test` from the repo root. Frontend has no test scrip
 - API routers: `backend/src/garmin_tracker/routers/`
 - Domain: `services/`, `store/`, `categorization.py`, `units.py`, `models.py`
 - Jobs: `jobs/sync_worker.py` (SQS); local `SYNC_BACKEND=inline`
-- UI: `frontend/src/pages/`
+- UI: `frontend/src/pages/` (week, charts, share `/s/:token`, settings)
 - Frontend API client: `frontend/src/api/client.ts` (relative `/api`; Vite proxies in dev)
 - Infra: `infra/`
