@@ -1,84 +1,60 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import { formatDuration } from '../lib/format'
+import { formatDuration, formatGarminType } from '../lib/format'
 import { formatDistance, formatElevation, useUnits } from '../lib/units'
-import type { Activity, ActivityCategory } from '../types'
-
-const CATEGORIES: ActivityCategory[] = [
-  'run',
-  'hike',
-  'stair',
-  'cardio',
-  'strength',
-  'uncategorized',
-]
+import type { Activity } from '../types'
 
 export function ActivityPage() {
   const units = useUnits()
   const { id } = useParams<{ id: string }>()
   const [activity, setActivity] = useState<Activity | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [category, setCategory] = useState<ActivityCategory>('uncategorized')
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (!id) return
     api<Activity>(`/api/activities/${id}`)
-      .then((a) => {
-        setActivity(a)
-        setCategory(a.category)
-      })
+      .then(setActivity)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed'))
   }, [id])
-
-  async function onRelabel(e: FormEvent) {
-    e.preventDefault()
-    if (!id) return
-    setSaved(false)
-    const updated = await api<Activity>(`/api/activities/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ category }),
-    })
-    setActivity(updated)
-    setSaved(true)
-  }
 
   if (error) return <p className="error">{error}</p>
   if (!activity) return <p>Loading…</p>
 
-  const isWeekSummaryType = (['run', 'hike', 'stair'] as const).some(
-    (c) => activity.category === c || activity.suggested_category === c,
-  )
+  const typeLabel = formatGarminType(activity.garmin_type)
+  const showDistance =
+    activity.distance_mi != null && activity.distance_mi > 0
+  const showElev =
+    activity.elevation_ft != null && activity.elevation_ft > 0
 
   return (
     <div className="detail">
       <p>
-        <Link to="/">← Week</Link>
+        <Link to="/">← Weeks</Link>
       </p>
-      <h1>{activity.name || 'Activity'}</h1>
+      <h1>{activity.name || typeLabel || 'Activity'}</h1>
       <p className="muted">
-        {new Date(activity.start_time).toLocaleString()} · Garmin:{' '}
-        <code>{activity.garmin_type || '—'}</code>
+        {new Date(activity.start_time).toLocaleString()}
+        {typeLabel ? ` · ${typeLabel}` : ''}
       </p>
 
       <div className="stat-grid">
-        {isWeekSummaryType ? (
-          <>
-            <div className="stat">
-              <div className="stat-label">Distance</div>
-              <div className="stat-value">
-                {formatDistance(activity.distance_mi, units)}
-              </div>
+        {showDistance && (
+          <div className="stat">
+            <div className="stat-label">Distance</div>
+            <div className="stat-value">
+              {formatDistance(activity.distance_mi, units)}
             </div>
-            <div className="stat">
-              <div className="stat-label">Elevation gain</div>
-              <div className="stat-value">
-                {formatElevation(activity.elevation_ft, units)}
-              </div>
+          </div>
+        )}
+        {showElev && (
+          <div className="stat">
+            <div className="stat-label">Elevation gain</div>
+            <div className="stat-value">
+              {formatElevation(activity.elevation_ft, units)}
             </div>
-          </>
-        ) : null}
+          </div>
+        )}
         <div className="stat">
           <div className="stat-label">Duration</div>
           <div className="stat-value">{formatDuration(activity.duration_s)}</div>
@@ -102,27 +78,6 @@ export function ActivityPage() {
           </div>
         )}
       </div>
-
-      <form className="relabel" onSubmit={onRelabel}>
-        <h2>Re-label</h2>
-        <label>
-          Category
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as ActivityCategory)}
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="submit" className="primary">
-          Save &amp; confirm
-        </button>
-        {saved && <span className="ok">Saved</span>}
-      </form>
     </div>
   )
 }

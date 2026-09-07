@@ -436,6 +436,10 @@ select {
 .act-name {
   font-size: 0.9rem;
 }
+.act-type {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
 .act-stats {
   font-size: 0.8rem;
   color: var(--muted);

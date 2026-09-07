@@ -49,6 +49,7 @@ export interface Activity {
 export interface WeekActivity {
   id: string
   name: string
+  garmin_type?: string
   category: ActivityCategory
   distance_mi: number
   elevation_ft: number

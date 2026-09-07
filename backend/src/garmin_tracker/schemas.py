@@ -101,6 +101,7 @@ class ActivityUpdate(BaseModel):
 class WeekActivityOut(BaseModel):
     id: str
     name: str
+    garmin_type: str = ""
     category: ActivityCategory
     distance_mi: float
     elevation_ft: float

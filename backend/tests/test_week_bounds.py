@@ -71,6 +71,7 @@ def _act(
     a.calories = calories
     a.active_calories = None
     a.duration_s = 1800.0
+    a.garmin_type = "running"
     return a
 
 

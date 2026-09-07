@@ -8,6 +8,13 @@ export function formatFt(n: number | null | undefined): string {
   return `${Math.round(n).toLocaleString()} ft`
 }
 
+export function formatGarminType(raw: string | null | undefined): string {
+  if (!raw) return ''
+  const spaced = raw.replace(/[_-]+/g, ' ').trim()
+  if (!spaced) return ''
+  return spaced.replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 export function formatCal(n: number | null | undefined): string {
   if (n == null) return '—'
   return `${Math.round(n).toLocaleString()} cal`

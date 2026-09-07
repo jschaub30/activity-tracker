@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { formatCal, weekdayLabel } from '../lib/format'
+import { formatCal, formatGarminType, weekdayLabel } from '../lib/format'
 import { formatDistance, formatElevation, useUnits } from '../lib/units'
 import { useReloadWhenSyncFinishes, useSync } from '../lib/sync'
 import type { WeekDay, WeekSummary, WeeksList } from '../types'
@@ -23,10 +23,11 @@ function DayCell({ day, readOnly }: { day: WeekDay; readOnly: boolean }) {
       ) : (
         <ul className="act-list">
           {day.activities.map((a) => {
+            const typeLabel = formatGarminType(a.garmin_type)
             const body = (
               <>
-                <span className={`badge ${a.category}`}>{a.category}</span>
-                <span className="act-name">{a.name || 'Activity'}</span>
+                <span className="act-name">{a.name || typeLabel || 'Activity'}</span>
+                {typeLabel ? <span className="act-type">{typeLabel}</span> : null}
                 <span className="act-stats">
                   {formatDistance(a.distance_mi, units)} ·{' '}
                   {formatElevation(a.elevation_ft, units)} ·{' '}
@@ -190,13 +191,12 @@ export function WeekPage({
       <p className="muted small">
         {readOnly ? (
           <>
-            Confirmed activities only. Distance and elevation count runs, hikes,
-            and stairs; calories count all confirmed activities.
+            Distance and elevation include running, hiking, walking, and stairs.
           </>
         ) : (
           <>
-            Click an activity for details. Distance and elevation count runs,
-            hikes, and stairs; calories count all categories.
+            Click an activity for details. Distance and elevation include
+            running, hiking, walking, and stairs.
           </>
         )}
       </p>

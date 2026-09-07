@@ -86,6 +86,9 @@ def week_from_activities(
                 WeekActivityOut(
                     id=act.id,
                     name=act.name,
+                    garmin_type=act.garmin_type
+                    if isinstance(act.garmin_type, str)
+                    else "",
                     category=act.category,
                     distance_mi=dist_mi,
                     elevation_ft=elev_ft,

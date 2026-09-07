@@ -424,9 +424,8 @@ export function SettingsPage() {
           <p className="muted">No sync runs yet</p>
         )}
         <p className="muted small" style={{ marginTop: '0.75rem' }}>
-          Synced activities appear on the week grid automatically (mi/ft from
-          runs, hikes, and stairs; calories from all). You can re-label an
-          activity from its detail page.
+          Synced activities appear automatically. Distance and elevation include
+          running, hiking, walking, and stairs; calories include everything.
         </p>
       </section>
 

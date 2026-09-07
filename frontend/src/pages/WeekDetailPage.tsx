@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import { formatCal, weekdayLabel } from '../lib/format'
+import { formatCal, formatGarminType, weekdayLabel } from '../lib/format'
 import { formatDistance, formatElevation, useUnits } from '../lib/units'
 import type { WeekSummary } from '../types'
 
@@ -60,13 +60,17 @@ export function WeekDetailPage() {
                     <span className="empty">—</span>
                   ) : (
                     <ul className="act-list">
-                      {d.activities.map((a) => (
+                      {d.activities.map((a) => {
+                        const typeLabel = formatGarminType(a.garmin_type)
+                        return (
                         <li key={a.id}>
                           <Link to={`/activities/${a.id}`}>
-                            <span className={`badge ${a.category}`}>
-                              {a.category}
+                            <span className="act-name">
+                              {a.name || typeLabel || 'Activity'}
                             </span>
-                            <span className="act-name">{a.name || 'Activity'}</span>
+                            {typeLabel ? (
+                              <span className="act-type">{typeLabel}</span>
+                            ) : null}
                             <span className="act-stats">
                               {formatDistance(a.distance_mi, units)} ·{' '}
                               {formatElevation(a.elevation_ft, units)} ·{' '}
@@ -74,7 +78,8 @@ export function WeekDetailPage() {
                             </span>
                           </Link>
                         </li>
-                      ))}
+                        )
+                      })}
                     </ul>
                   )}
                 </td>
