@@ -3,7 +3,9 @@ import { NavLink, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { UnitsProvider, type Units } from '../lib/units'
 import { ChartsPage } from './ChartsPage'
+import { MonthsPage } from './MonthsPage'
 import { WeekPage } from './WeekPage'
+import { YearsPage } from './YearsPage'
 
 interface PublicMeta {
   label: string | null
@@ -12,7 +14,11 @@ interface PublicMeta {
   units?: Units
 }
 
-export function SharedViewPage({ mode }: { mode: 'weeks' | 'charts' }) {
+export function SharedViewPage({
+  mode,
+}: {
+  mode: 'weeks' | 'months' | 'years' | 'charts'
+}) {
   const { token } = useParams<{ token: string }>()
   const [meta, setMeta] = useState<PublicMeta | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -45,13 +51,22 @@ export function SharedViewPage({ mode }: { mode: 'weeks' | 'charts' }) {
           <NavLink to={`/s/${token}`} end>
             Weeks
           </NavLink>
+          <NavLink to={`/s/${token}/months`}>Months</NavLink>
+          <NavLink to={`/s/${token}/years`}>Years</NavLink>
           <NavLink to={`/s/${token}/charts`}>Charts</NavLink>
         </nav>
       </div>
       <UnitsProvider units={meta.units ?? 'imperial'}>
-        {mode === 'weeks' ? (
+        {mode === 'weeks' && (
           <WeekPage shareToken={token} titleSuffix={title} />
-        ) : (
+        )}
+        {mode === 'months' && (
+          <MonthsPage shareToken={token} titleSuffix={title} />
+        )}
+        {mode === 'years' && (
+          <YearsPage shareToken={token} titleSuffix={title} />
+        )}
+        {mode === 'charts' && (
           <ChartsPage shareToken={token} titleSuffix={title} />
         )}
       </UnitsProvider>

@@ -41,29 +41,39 @@ function MonthCell({ month }: { month: YearMonth }) {
   )
 }
 
-export function YearsPage() {
+export function YearsPage({
+  shareToken,
+  titleSuffix,
+}: {
+  shareToken?: string
+  titleSuffix?: string
+} = {}) {
   const units = useUnits()
   const [data, setData] = useState<YearsList | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const yearsUrl = shareToken
+    ? `/api/public/${shareToken}/years`
+    : '/api/years'
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      setData(await api<YearsList>('/api/years'))
+      setData(await api<YearsList>(yearsUrl))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load years')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [yearsUrl])
 
   useEffect(() => {
     void load()
   }, [load])
 
-  useReloadWhenSyncFinishes(load)
+  useReloadWhenSyncFinishes(load, !shareToken)
 
   if (loading && !data) return <p>Loading years…</p>
   if (error) return <p className="error">{error}</p>
@@ -72,7 +82,7 @@ export function YearsPage() {
   return (
     <div className="week-page">
       <div className="week-header">
-        <h1>Years</h1>
+        <h1>Years{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
       </div>
       <div className="week-table-wrap">
         <table className="week-table stacked-weeks years-table">

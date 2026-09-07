@@ -233,9 +233,8 @@ export function SettingsPage() {
       <section className="card">
         <h2>Share link (read-only)</h2>
         <p className="muted small">
-          Anyone with the link can view your weekly summary and charts (mi/ft
-          from runs, hikes, and stairs; calories from all). They cannot sync or
-          edit.
+          Anyone with the link can view Weeks, Months, Years, and Charts. They
+          cannot sync or edit.
         </p>
         <form onSubmit={createShare} className="stack">
           <label>

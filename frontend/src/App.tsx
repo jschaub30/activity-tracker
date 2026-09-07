@@ -30,6 +30,8 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           {/* Public read-only share views (no login) */}
           <Route path="/s/:token" element={<SharedViewPage mode="weeks" />} />
+          <Route path="/s/:token/months" element={<SharedViewPage mode="months" />} />
+          <Route path="/s/:token/years" element={<SharedViewPage mode="years" />} />
           <Route path="/s/:token/charts" element={<SharedViewPage mode="charts" />} />
           <Route
             path="/"

@@ -41,7 +41,7 @@ interface Totals {
 
 const RANGE_OPTIONS: { id: ChartRange; label: string }[] = [
   { id: 'weeks', label: '52 weeks' },
-  { id: 'months', label: '24 months' },
+  { id: 'months', label: '48 months' },
   { id: 'years', label: 'All years' },
 ]
 
@@ -160,7 +160,7 @@ export function ChartsPage({
         return
       }
       if (range === 'months') {
-        const data = await api<MonthsList>(`${prefix}/months?count=24`)
+        const data = await api<MonthsList>(`${prefix}/months?count=48`)
         const months = [...data.months].reverse()
         setPoints(
           months.map((m) => ({
@@ -225,7 +225,7 @@ export function ChartsPage({
   const periodWord =
     range === 'weeks' ? 'Week of' : range === 'months' ? 'Month of' : 'Year'
   const statPrefix =
-    range === 'weeks' ? '52-week' : range === 'months' ? '24-month' : 'All-years'
+    range === 'weeks' ? '52-week' : range === 'months' ? '48-month' : 'All-years'
 
   const chartData = useMemo(() => points ?? [], [points])
 
@@ -312,7 +312,11 @@ export function ChartsPage({
         <Link
           to={
             shareToken
-              ? `/s/${shareToken}`
+              ? range === 'months'
+                ? `/s/${shareToken}/months`
+                : range === 'years'
+                  ? `/s/${shareToken}/years`
+                  : `/s/${shareToken}`
               : range === 'months'
                 ? '/months'
                 : range === 'years'

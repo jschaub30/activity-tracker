@@ -5,29 +5,39 @@ import { useReloadWhenSyncFinishes } from '../lib/sync'
 import { formatDistance, formatElevation, useUnits } from '../lib/units'
 import type { MonthsList } from '../types'
 
-export function MonthsPage() {
+export function MonthsPage({
+  shareToken,
+  titleSuffix,
+}: {
+  shareToken?: string
+  titleSuffix?: string
+} = {}) {
   const units = useUnits()
   const [data, setData] = useState<MonthsList | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const monthsUrl = shareToken
+    ? `/api/public/${shareToken}/months?count=48`
+    : '/api/months?count=48'
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      setData(await api<MonthsList>('/api/months?count=24'))
+      setData(await api<MonthsList>(monthsUrl))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load months')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [monthsUrl])
 
   useEffect(() => {
     void load()
   }, [load])
 
-  useReloadWhenSyncFinishes(load)
+  useReloadWhenSyncFinishes(load, !shareToken)
 
   if (loading && !data) return <p>Loading months…</p>
   if (error) return <p className="error">{error}</p>
@@ -36,7 +46,7 @@ export function MonthsPage() {
   return (
     <div className="week-page">
       <div className="week-header">
-        <h1>Months</h1>
+        <h1>Months{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
       </div>
       <div className="week-table-wrap">
         <table className="weeks-list-table">
