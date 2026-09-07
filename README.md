@@ -10,7 +10,7 @@ Garmin password is never stored. See [How Garmin credentials are handled](docs/g
 | Frontend | **React + Vite + TypeScript** on S3 + CloudFront |
 | Garmin | `garminconnect` (MFA supported) |
 | Timezone | America/Denver |
-| Backfill | 365 days |
+| Backfill | Full Garmin history |
 | Deploy | Terraform → Lambda (container) + S3/CloudFront |
 
 ## Project layout
@@ -86,7 +86,7 @@ Vite proxies `/api` to the backend, so the SPA uses relative `/api` in both dev 
 - Week API (Sun–Sat, Denver) with **combined** mi/ft totals for runs + hikes + stair steppers
 - React pages: login, register, week table, activity detail, charts, share views, settings
 - **Real Garmin Connect login** (MFA supported), encrypted session tokens
-- **Sync**: 365-day first backfill, then incremental; activities appear on the week grid automatically
+- **Sync**: full-history first backfill, then incremental; activities appear on Weeks / Months / Years automatically
 
 ## How to download your Garmin data
 
@@ -94,7 +94,7 @@ Vite proxies `/api` to the backend, so the SPA uses relative `/api` in both dev 
 2. Register / log in to the app
 3. **Settings → Connect Garmin** with your Garmin email/password
    - If MFA is required, enter the code when prompted
-4. Initial sync starts automatically (last **365 days**)
+4. Initial sync starts automatically (**all** Garmin history)
 5. Activities show on the **Week** table (runs / hikes / stairs for mi/ft)
 6. Use **Sync now** anytime for incremental updates
 

@@ -25,6 +25,9 @@ from garmin_tracker.store import repo
 logger = logging.getLogger(__name__)
 
 INCREMENTAL_OVERLAP_DAYS = 3
+# Garmin history older than this is ignored (devices did not exist).
+HISTORY_START = date(2000, 1, 1)
+LONG_CHUNK_DAYS = 90
 # Under the SQS visibility timeout (900s). A run with no cursor bump in this
 # window is assumed abandoned (dropped queue message / hung worker).
 STALE_SYNC_SECONDS = 8 * 60
@@ -94,13 +97,17 @@ class SyncService:
 
     def _compute_range(self, garmin: GarminSession) -> tuple[date, date]:
         today = datetime.now(UTC).date()
-        if garmin.last_success_at and self._has_activities():
+        if (
+            garmin.history_complete
+            and garmin.last_success_at
+            and self._has_activities()
+        ):
             last = garmin.last_success_at
             if last.tzinfo is None:
                 last = last.replace(tzinfo=UTC)
             start = (last - timedelta(days=INCREMENTAL_OVERLAP_DAYS)).date()
         else:
-            start = today - timedelta(days=self.settings.backfill_days)
+            start = HISTORY_START
         return start, today
 
     def execute_sync(self, run_id: str) -> SyncRun:
@@ -130,11 +137,16 @@ class SyncService:
         if not run.range_start or not run.range_end:
             return self._fail(run, "Sync run missing date range")
 
-        chunk_days = max(1, self.settings.sync_chunk_days)
         cursor = (
             date.fromisoformat(run.cursor) if run.cursor else run.range_start.date()
         )
         range_end = run.range_end.date()
+        remaining = (range_end - cursor).days + 1
+        chunk_days = (
+            LONG_CHUNK_DAYS
+            if remaining > 45
+            else max(1, self.settings.sync_chunk_days)
+        )
         chunk_end = min(cursor + timedelta(days=chunk_days - 1), range_end)
         logger.info(
             "Sync %s user %s chunk %s .. %s (end %s)",
@@ -174,6 +186,8 @@ class SyncService:
                 run.error = None
                 garmin.last_success_at = utcnow()
                 garmin.last_error = None
+                if run.range_start.date() <= HISTORY_START:
+                    garmin.history_complete = True
                 repo.put_garmin(garmin)
 
             repo.put_sync_run(run)

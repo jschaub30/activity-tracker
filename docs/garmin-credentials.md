@@ -25,4 +25,4 @@ If Garmin challenges MFA, a short-lived pending-login blob is stored (DynamoDB T
 
 ## What sync imports
 
-Sync pulls **all** Garmin activities in the date range (365-day first backfill, then incremental). They are accepted automatically. The week grid still treats **run / hike / stair** as the distance and elevation totals; calories include every activity.
+Sync pulls **all** Garmin activities (full-history first backfill, then incremental). They are accepted automatically. Distance and elevation totals use **run / hike / stair**; calories include every activity.

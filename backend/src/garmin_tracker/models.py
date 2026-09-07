@@ -71,6 +71,7 @@ class GarminSession:
     connected_at: datetime = field(default_factory=utcnow)
     last_success_at: datetime | None = None
     last_error: str | None = None
+    history_complete: bool = False
 
 
 @dataclass

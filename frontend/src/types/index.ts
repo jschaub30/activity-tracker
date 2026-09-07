@@ -79,6 +79,45 @@ export interface WeeksList {
   weeks: WeekSummary[]
 }
 
+export interface PeriodTotals {
+  distance_mi: number
+  elevation_ft: number
+  calories: number
+}
+
+export interface MonthSummary {
+  year: number
+  month: number
+  label: string
+  start: string
+  end: string
+  is_current: boolean
+  totals: PeriodTotals
+}
+
+export interface MonthsList {
+  timezone: string
+  months: MonthSummary[]
+}
+
+export interface YearMonth {
+  month: number
+  totals: PeriodTotals
+}
+
+export interface YearSummary {
+  year: number
+  is_ytd: boolean
+  label: string
+  months: YearMonth[]
+  totals: PeriodTotals
+}
+
+export interface YearsList {
+  timezone: string
+  years: YearSummary[]
+}
+
 export interface GarminStatus {
   connected: boolean
   garmin_email?: string | null

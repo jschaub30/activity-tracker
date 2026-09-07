@@ -85,6 +85,7 @@ def _garmin_from_item(item: dict[str, Any]) -> GarminSession:
         connected_at=parse_dt(item.get("connected_at")) or utcnow(),
         last_success_at=parse_dt(item.get("last_success_at")),
         last_error=item.get("last_error"),
+        history_complete=bool(item.get("history_complete")),
     )
 
 
@@ -213,6 +214,7 @@ def put_garmin(row: GarminSession) -> GarminSession:
                 "connected_at": row.connected_at,
                 "last_success_at": row.last_success_at,
                 "last_error": row.last_error,
+                "history_complete": row.history_complete,
             }
         )
     )
@@ -534,6 +536,7 @@ def wipe_activity_data(user_id: str) -> tuple[int, int]:
     if garmin:
         garmin.last_success_at = None
         garmin.last_error = None
+        garmin.history_complete = False
         put_garmin(garmin)
     return act_n, sync_n
 

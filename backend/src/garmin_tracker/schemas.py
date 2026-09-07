@@ -134,6 +134,39 @@ class WeeksListOut(BaseModel):
     weeks: list[WeekOut]  # most recent first
 
 
+class MonthOut(BaseModel):
+    year: int
+    month: int
+    label: str
+    start: str
+    end: str
+    is_current: bool = False
+    totals: WeekTotalsOut
+
+
+class MonthsListOut(BaseModel):
+    timezone: str
+    months: list[MonthOut]  # most recent first
+
+
+class YearMonthOut(BaseModel):
+    month: int
+    totals: WeekTotalsOut
+
+
+class YearOut(BaseModel):
+    year: int
+    is_ytd: bool
+    label: str
+    months: list[YearMonthOut]
+    totals: WeekTotalsOut
+
+
+class YearsListOut(BaseModel):
+    timezone: str
+    years: list[YearOut]  # YTD first, then prior years
+
+
 # ----- Sync -----
 
 

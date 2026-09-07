@@ -334,6 +334,13 @@ select {
   top: 0;
   z-index: 2;
 }
+.years-table {
+  min-width: 1100px;
+}
+.years-table .total-num {
+  font-size: 0.85rem;
+}
+
 .week-table.stacked-weeks .week-label-col {
   width: 9%;
   min-width: 7.5rem;
@@ -381,7 +388,8 @@ select {
   .week-table.stacked-weeks {
     min-width: 0;
   }
-  .week-table.stacked-weeks .day-col {
+  .week-table.stacked-weeks .day-col,
+  .years-table .day-col {
     display: none;
   }
   .week-table.stacked-weeks .week-label-col,

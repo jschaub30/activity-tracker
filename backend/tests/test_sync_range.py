@@ -1,7 +1,6 @@
 from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
-from garmin_tracker.config import get_settings
 from garmin_tracker.models import (
     Activity,
     ActivityCategory,
@@ -12,6 +11,7 @@ from garmin_tracker.models import (
     User,
 )
 from garmin_tracker.services.sync_service import (
+    HISTORY_START,
     INCREMENTAL_OVERLAP_DAYS,
     STALE_SYNC_SECONDS,
     SyncService,
@@ -19,7 +19,11 @@ from garmin_tracker.services.sync_service import (
 from garmin_tracker.store import repo
 
 
-def _user_with_garmin(*, last_success_at: datetime | None) -> str:
+def _user_with_garmin(
+    *,
+    last_success_at: datetime | None,
+    history_complete: bool = False,
+) -> str:
     user_id = str(uuid4())
     repo.create_user(
         User(
@@ -34,6 +38,7 @@ def _user_with_garmin(*, last_success_at: datetime | None) -> str:
             encrypted_token="token",
             garmin_email="g@example.com",
             last_success_at=last_success_at,
+            history_complete=history_complete,
         )
     )
     return user_id
@@ -50,12 +55,12 @@ def test_compute_range_full_backfill_when_no_activities():
 
     today = datetime.now(UTC).date()
     assert end == today
-    assert start == today - timedelta(days=get_settings().backfill_days)
+    assert start == HISTORY_START
 
 
 def test_compute_range_incremental_when_activities_exist():
     last = datetime.now(UTC)
-    user_id = _user_with_garmin(last_success_at=last)
+    user_id = _user_with_garmin(last_success_at=last, history_complete=True)
     repo.put_activity(
         Activity(
             user_id=user_id,
@@ -91,7 +96,28 @@ def test_compute_range_full_backfill_without_last_success():
 
     today = date.today()
     assert abs((end - today).days) <= 1
-    assert (end - start).days == get_settings().backfill_days
+    assert start == HISTORY_START
+
+
+def test_compute_range_full_history_until_complete():
+    last = datetime.now(UTC)
+    user_id = _user_with_garmin(last_success_at=last, history_complete=False)
+    repo.put_activity(
+        Activity(
+            user_id=user_id,
+            garmin_activity_id="1",
+            name="Run",
+            start_time=last,
+            category=ActivityCategory.run,
+            suggested_category=ActivityCategory.run,
+        )
+    )
+    user = repo.get_user(user_id)
+    assert user is not None
+    garmin = SyncService(user).garmin_row()
+    assert garmin is not None
+    start, _end = SyncService(user)._compute_range(garmin)
+    assert start == HISTORY_START
 
 
 def test_begin_sync_rejects_fresh_running_run():

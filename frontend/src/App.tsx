@@ -8,8 +8,10 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SharedViewPage } from './pages/SharedViewPage'
+import { MonthsPage } from './pages/MonthsPage'
 import { WeekDetailPage } from './pages/WeekDetailPage'
 import { WeekPage } from './pages/WeekPage'
+import { YearsPage } from './pages/YearsPage'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -42,6 +44,22 @@ export default function App() {
             element={
               <Protected>
                 <WeekDetailPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/months"
+            element={
+              <Protected>
+                <MonthsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/years"
+            element={
+              <Protected>
+                <YearsPage />
               </Protected>
             }
           />

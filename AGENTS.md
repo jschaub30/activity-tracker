@@ -37,6 +37,6 @@ Do not run `pytest` or `npm test` from the repo root. Frontend has no test scrip
 - API routers: `backend/src/garmin_tracker/routers/`
 - Domain: `services/`, `store/`, `categorization.py`, `units.py`, `models.py`
 - Jobs: `jobs/sync_worker.py` (SQS); local `SYNC_BACKEND=inline`
-- UI: `frontend/src/pages/` (week, charts, share `/s/:token`, settings)
+- UI: `frontend/src/pages/` (weeks, months, years, charts, share `/s/:token`, settings)
 - Frontend API client: `frontend/src/api/client.ts` (relative `/api`; Vite proxies in dev)
 - Infra: `infra/`

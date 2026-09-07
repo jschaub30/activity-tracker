@@ -11,10 +11,12 @@ from garmin_tracker.routers import (
     activities,
     auth,
     garmin,
+    months,
     public,
     share,
     sync,
     weeks,
+    years,
 )
 
 
@@ -49,6 +51,8 @@ def create_app() -> FastAPI:
     app.include_router(sync.router)
     app.include_router(activities.router)
     app.include_router(weeks.router)
+    app.include_router(months.router)
+    app.include_router(years.router)
     app.include_router(share.router)
     app.include_router(public.router)
 

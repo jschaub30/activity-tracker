@@ -105,7 +105,7 @@ def garmin_connect(
         connected_at=row.connected_at,
         last_success_at=row.last_success_at,
         last_error=row.last_error,
-        message="Connected. Initial sync started in the background (up to 365 days).",
+        message="Connected. Initial sync started in the background (full history).",
     )
 
 

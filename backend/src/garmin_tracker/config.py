@@ -42,7 +42,6 @@ class Settings(BaseSettings):
 
     # App defaults
     default_timezone: str = "America/Denver"
-    backfill_days: int = 365
     cors_origins: str = "http://localhost:5180,http://127.0.0.1:5180"
 
     @property
