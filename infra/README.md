@@ -29,9 +29,9 @@ Subsequent deploys: `mise run deploy` from the repo root (SPA sync + image + Lam
 
 Lambda `image_uri` is ignored by Terraform after create (`lifecycle.ignore_changes`). Image rolls go through `mise run deploy:image`, which pushes ECR and calls `aws lambda update-function-code`. A plain `terraform apply` will not revert the running tag to `bootstrap`.
 
-## Optional custom domain
+## Custom domain
 
-Set `domain_name` and `hosted_zone_id` in `terraform.tfvars`. ACM is issued in **us-east-1**.
+Default is `fit.jeremyschaub.us` in hosted zone `Z08139191SUNH8V1GGD9D` (`jeremyschaub.us`). ACM is issued in **us-east-1**. Override with `-var domain_name=` / `-var hosted_zone_id=`.
 
 ## Destroy
 

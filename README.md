@@ -106,7 +106,7 @@ Existing SQLite data: `uv run python ../scripts/migrate_sqlite_to_ddb.py` from `
 
 See [infra/README.md](infra/README.md). First apply is two-step (ECR → push image → full apply). All taggable resources get `repo=garmin-tracker` and `created-by=terraform`.
 
-Idle cost is typically a few dollars a month (Lambda idle $0, DynamoDB on-demand cents, CloudFront pennies).
+Live: **https://fit.jeremyschaub.us** (CloudFront + Route53). Idle cost is typically a few dollars a month (Lambda idle $0, DynamoDB on-demand cents, CloudFront pennies).
 
 ```bash
 cd infra

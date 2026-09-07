@@ -24,14 +24,14 @@ variable "lambda_image_tag" {
 
 variable "domain_name" {
   type        = string
-  description = "Optional custom domain for CloudFront (empty = default CF domain)."
-  default     = ""
+  description = "Custom domain for CloudFront (empty = default CF domain)."
+  default     = "fit.jeremyschaub.us"
 }
 
 variable "hosted_zone_id" {
   type        = string
   description = "Route53 hosted zone for domain_name (required when domain_name is set)."
-  default     = ""
+  default     = "Z08139191SUNH8V1GGD9D"
 }
 
 variable "price_class" {
