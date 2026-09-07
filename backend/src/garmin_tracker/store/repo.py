@@ -50,7 +50,9 @@ from garmin_tracker.store.keys import (
 
 
 def _get(pk: str, sk: str) -> dict[str, Any] | None:
-    item = table().get_item(Key={"pk": pk, "sk": sk}).get("Item")
+    item = table().get_item(
+        Key={"pk": pk, "sk": sk}, ConsistentRead=True
+    ).get("Item")
     return from_ddb(item) if item else None
 
 MFA_TTL_SECONDS = 10 * 60
@@ -123,6 +125,9 @@ def _sync_from_item(item: dict[str, Any]) -> SyncRun:
         activities_updated=int(item.get("activities_updated") or 0),
         error=item.get("error"),
         cursor=item.get("cursor"),
+        updated_at=parse_dt(item.get("updated_at"))
+        or parse_dt(item.get("started_at"))
+        or utcnow(),
     )
 
 
@@ -401,6 +406,7 @@ def put_sync_run(run: SyncRun) -> SyncRun:
                 "activities_updated": run.activities_updated,
                 "error": run.error,
                 "cursor": run.cursor,
+                "updated_at": run.updated_at,
             }
         )
     )
@@ -437,13 +443,30 @@ def latest_sync_run(user_id: str) -> SyncRun | None:
     return None
 
 
-def is_sync_running(user_id: str) -> bool:
+def list_running_syncs(user_id: str) -> list[SyncRun]:
     items = query_all(
         KeyConditionExpression=Key("pk").eq(user_pk(user_id))
         & Key("sk").begins_with(sync_sk_prefix()),
         FilterExpression=Attr("status").eq("running"),
     )
-    return any(i.get("status") == "running" for i in items)
+    return [
+        _sync_from_item(i)
+        for i in items
+        if i.get("sk", "").startswith("SYNC#") and i.get("status") == "running"
+    ]
+
+
+def is_sync_running(user_id: str, *, stale_after_seconds: int | None = None) -> bool:
+    now = utcnow()
+    for run in list_running_syncs(user_id):
+        if stale_after_seconds is not None:
+            ts = run.updated_at or run.started_at
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=UTC)
+            if (now - ts).total_seconds() > stale_after_seconds:
+                continue
+        return True
+    return False
 
 
 def list_share_links(user_id: str) -> list[ShareLink]:

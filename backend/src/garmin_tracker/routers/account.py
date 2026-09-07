@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from garmin_tracker.deps import CurrentUser
 from garmin_tracker.schemas import DeleteDataOut
+from garmin_tracker.services.sync_service import STALE_SYNC_SECONDS
 from garmin_tracker.store import repo
 
 router = APIRouter(prefix="/api/account", tags=["account"])
@@ -17,7 +18,7 @@ def delete_all_data(user: CurrentUser) -> DeleteDataOut:
     share links are left intact. Clears the sync cursor (``last_success_at``)
     so the next sync does a full backfill instead of a short incremental pull.
     """
-    if repo.is_sync_running(user.id):
+    if repo.is_sync_running(user.id, stale_after_seconds=STALE_SYNC_SECONDS):
         raise HTTPException(
             status_code=409,
             detail="Cannot delete data while a sync is running. Wait for it to finish.",

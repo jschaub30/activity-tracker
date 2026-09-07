@@ -57,7 +57,7 @@ def _kick_off_sync(user: User, background_tasks: BackgroundTasks) -> None:
     svc = SyncService(user)
     try:
         if not svc.is_running():
-            run = svc.create_running_sync()
+            run = svc.begin_sync()
             if (get_settings().sync_backend or "inline").lower() == "sqs":
                 enqueue_sync(user.id, run.id)
             else:

@@ -105,6 +105,7 @@ class SyncRun:
     error: str | None = None
     # Worker cursor (YYYY-MM-DD) for chunked backfill; None = start of range
     cursor: str | None = None
+    updated_at: datetime = field(default_factory=utcnow)
 
 
 @dataclass

@@ -25,6 +25,9 @@ from garmin_tracker.store import repo
 logger = logging.getLogger(__name__)
 
 INCREMENTAL_OVERLAP_DAYS = 3
+# Under the SQS visibility timeout (900s). A run with no cursor bump in this
+# window is assumed abandoned (dropped queue message / hung worker).
+STALE_SYNC_SECONDS = 8 * 60
 
 
 class SyncService:
@@ -33,13 +36,39 @@ class SyncService:
         self.settings = get_settings()
 
     def is_running(self) -> bool:
-        return repo.is_sync_running(self.user.id)
+        return repo.is_sync_running(
+            self.user.id, stale_after_seconds=STALE_SYNC_SECONDS
+        )
+
+    def _age_seconds(self, run: SyncRun) -> float:
+        ts = run.updated_at or run.started_at
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        return (utcnow() - ts).total_seconds()
 
     def latest_run(self) -> SyncRun | None:
         return repo.latest_sync_run(self.user.id)
 
     def garmin_row(self) -> GarminSession | None:
         return repo.get_garmin(self.user.id)
+
+    def begin_sync(self) -> SyncRun:
+        """Create a new run, or resume a stale in-progress backfill."""
+        running = repo.list_running_syncs(self.user.id)
+        for run in running:
+            if self._age_seconds(run) <= STALE_SYNC_SECONDS:
+                raise RuntimeError("A sync is already running for this user")
+            logger.warning(
+                "Resuming stale sync %s for user %s at cursor %s",
+                run.id,
+                self.user.id,
+                run.cursor,
+            )
+            run.error = None
+            run.updated_at = utcnow()
+            repo.put_sync_run(run)
+            return run
+        return self.create_running_sync()
 
     def create_running_sync(self) -> SyncRun:
         if self.is_running():
@@ -107,6 +136,14 @@ class SyncService:
         )
         range_end = run.range_end.date()
         chunk_end = min(cursor + timedelta(days=chunk_days - 1), range_end)
+        logger.info(
+            "Sync %s user %s chunk %s .. %s (end %s)",
+            run.id,
+            self.user.id,
+            cursor,
+            chunk_end,
+            range_end,
+        )
 
         try:
             client = GarminClient(email=garmin.garmin_email)
@@ -125,6 +162,7 @@ class SyncService:
             run.activities_updated += updated
             rebuild_weeks_for_times(self.user, touched)
 
+            run.updated_at = utcnow()
             more = chunk_end < range_end
             if more:
                 run.cursor = (chunk_end + timedelta(days=1)).isoformat()

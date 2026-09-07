@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 
-from garmin_tracker.models import SyncStatus
 from garmin_tracker.services.sync_service import SyncService, enqueue_sync
 from garmin_tracker.store import repo
 
@@ -36,9 +35,9 @@ def process_message(body: dict) -> None:
         logger.warning("sync worker: user %s not found", user_id)
         return
     svc = SyncService(user)
-    run = svc.execute_chunk(run_id)
-    if run.status == SyncStatus.running:
-        enqueue_sync(user_id, run_id)
+    # Finish remaining chunks in this invocation. One SQS message per chunk
+    # dropped the chain (cursor left at mid-backfill, run stuck "running").
+    svc.execute_sync(run_id)
 
 
 def handler(event: dict, _context: object) -> dict:

@@ -304,8 +304,13 @@ export function SettingsPage() {
               <p className="error small">{status.last_error}</p>
             )}
             <div className="week-actions" style={{ marginTop: '0.75rem' }}>
-              <button type="button" className="primary" onClick={onSync} disabled={busy}>
-                Sync now
+              <button
+                type="button"
+                className="primary"
+                onClick={onSync}
+                disabled={busy || !!sync?.is_running}
+              >
+                {sync?.is_running ? 'Syncing…' : 'Sync now'}
               </button>
               <button type="button" onClick={onDisconnect} disabled={busy}>
                 Disconnect
@@ -377,6 +382,12 @@ export function SettingsPage() {
             <li>Fetched: {sync.activities_fetched}</li>
             <li>Created: {sync.activities_created}</li>
             <li>Updated: {sync.activities_updated}</li>
+            {sync.is_running && (
+              <li className="muted small">
+                First Garmin pull can take a few minutes. Leave this page open —
+                it will refresh on its own.
+              </li>
+            )}
             {sync.error && <li className="error">{sync.error}</li>}
           </ul>
         ) : (

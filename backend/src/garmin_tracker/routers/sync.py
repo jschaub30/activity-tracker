@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/sync", tags=["sync"])
 def start_sync(user: CurrentUser, background_tasks: BackgroundTasks) -> SyncStartOut:
     svc = SyncService(user)
     try:
-        run = svc.create_running_sync()
+        run = svc.begin_sync()
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if (get_settings().sync_backend or "inline").lower() == "sqs":

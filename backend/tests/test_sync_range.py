@@ -7,9 +7,15 @@ from garmin_tracker.models import (
     ActivityCategory,
     GarminSession,
     ReviewStatus,
+    SyncRun,
+    SyncStatus,
     User,
 )
-from garmin_tracker.services.sync_service import INCREMENTAL_OVERLAP_DAYS, SyncService
+from garmin_tracker.services.sync_service import (
+    INCREMENTAL_OVERLAP_DAYS,
+    STALE_SYNC_SECONDS,
+    SyncService,
+)
 from garmin_tracker.store import repo
 
 
@@ -86,3 +92,34 @@ def test_compute_range_full_backfill_without_last_success():
     today = date.today()
     assert abs((end - today).days) <= 1
     assert (end - start).days == get_settings().backfill_days
+
+
+def test_begin_sync_rejects_fresh_running_run():
+    user_id = _user_with_garmin(last_success_at=None)
+    user = repo.get_user(user_id)
+    assert user is not None
+    run = SyncService(user).create_running_sync()
+    assert run.status == SyncStatus.running
+    try:
+        SyncService(user).begin_sync()
+        raise AssertionError("expected already-running error")
+    except RuntimeError as exc:
+        assert "already running" in str(exc)
+
+
+def test_begin_sync_resumes_stale_running_run():
+    user_id = _user_with_garmin(last_success_at=None)
+    user = repo.get_user(user_id)
+    assert user is not None
+    stale = SyncRun(
+        user_id=user_id,
+        status=SyncStatus.running,
+        cursor="2026-04-19",
+        started_at=datetime.now(UTC) - timedelta(seconds=STALE_SYNC_SECONDS + 30),
+        updated_at=datetime.now(UTC) - timedelta(seconds=STALE_SYNC_SECONDS + 30),
+    )
+    repo.put_sync_run(stale)
+    resumed = SyncService(user).begin_sync()
+    assert resumed.id == stale.id
+    assert resumed.cursor == "2026-04-19"
+    assert resumed.status == SyncStatus.running
