@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { formatCal, formatFt, formatMi, weekdayLabel } from '../lib/format'
+import { formatCal, weekdayLabel } from '../lib/format'
+import { formatDistance, formatElevation, useUnits } from '../lib/units'
 import { useReloadWhenSyncFinishes, useSync } from '../lib/sync'
 import type { WeekDay, WeekSummary, WeeksList } from '../types'
 
@@ -13,6 +14,7 @@ function formatWeekLabel(start: string, end: string): string {
 }
 
 function DayCell({ day, readOnly }: { day: WeekDay; readOnly: boolean }) {
+  const units = useUnits()
   return (
     <td className="day-col">
       <div className="th-date day-cell-date">{day.date.slice(5)}</div>
@@ -26,7 +28,8 @@ function DayCell({ day, readOnly }: { day: WeekDay; readOnly: boolean }) {
                 <span className={`badge ${a.category}`}>{a.category}</span>
                 <span className="act-name">{a.name || 'Activity'}</span>
                 <span className="act-stats">
-                  {formatMi(a.distance_mi)} · {formatFt(a.elevation_ft)} ·{' '}
+                  {formatDistance(a.distance_mi, units)} ·{' '}
+                  {formatElevation(a.elevation_ft, units)} ·{' '}
                   {formatCal(a.calories)}
                 </span>
               </>
@@ -56,6 +59,7 @@ function WeekRow({
   isCurrent: boolean
   readOnly: boolean
 }) {
+  const units = useUnits()
   return (
     <tr className={isCurrent ? 'current-week' : undefined}>
       <td className="week-label-col">
@@ -68,8 +72,12 @@ function WeekRow({
         <DayCell key={d.date} day={d} readOnly={readOnly} />
       ))}
       <td className="totals-col">
-        <div className="total-num">{formatMi(week.totals.distance_mi)}</div>
-        <div className="total-num">{formatFt(week.totals.elevation_ft)}</div>
+        <div className="total-num">
+          {formatDistance(week.totals.distance_mi, units)}
+        </div>
+        <div className="total-num">
+          {formatElevation(week.totals.elevation_ft, units)}
+        </div>
         <div className="total-num">{formatCal(week.totals.calories)}</div>
       </td>
     </tr>
@@ -132,11 +140,7 @@ export function WeekPage({
     <div className="week-page">
       <div className="week-header">
         <div>
-          <h1>Weekly summary{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
-          <p className="muted">
-            Last 52 weeks · mi/ft: runs, hikes &amp; stairs · calories: all activities
-            {readOnly ? ' · read-only' : ''}
-          </p>
+          <h1>Weeks{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
         </div>
         {!readOnly && (
           <div className="week-actions">

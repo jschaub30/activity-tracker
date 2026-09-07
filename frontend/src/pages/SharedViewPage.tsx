@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
 import { api } from '../api/client'
+import { UnitsProvider, type Units } from '../lib/units'
 import { ChartsPage } from './ChartsPage'
 import { WeekPage } from './WeekPage'
 
@@ -8,6 +9,7 @@ interface PublicMeta {
   label: string | null
   timezone: string
   owner_display: string
+  units?: Units
 }
 
 export function SharedViewPage({ mode }: { mode: 'weeks' | 'charts' }) {
@@ -41,16 +43,18 @@ export function SharedViewPage({ mode }: { mode: 'weeks' | 'charts' }) {
         </div>
         <nav className="nav shared-nav">
           <NavLink to={`/s/${token}`} end>
-            Week
+            Weeks
           </NavLink>
           <NavLink to={`/s/${token}/charts`}>Charts</NavLink>
         </nav>
       </div>
-      {mode === 'weeks' ? (
-        <WeekPage shareToken={token} titleSuffix={title} />
-      ) : (
-        <ChartsPage shareToken={token} titleSuffix={title} />
-      )}
+      <UnitsProvider units={meta.units ?? 'imperial'}>
+        {mode === 'weeks' ? (
+          <WeekPage shareToken={token} titleSuffix={title} />
+        ) : (
+          <ChartsPage shareToken={token} titleSuffix={title} />
+        )}
+      </UnitsProvider>
     </div>
   )
 }

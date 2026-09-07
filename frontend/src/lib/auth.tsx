@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { api, setToken } from '../api/client'
-import type { TokenResponse, User } from '../types'
+import type { TokenResponse, Units, User } from '../types'
 
 interface AuthCtx {
   user: User | null
@@ -16,6 +16,7 @@ interface AuthCtx {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string) => Promise<void>
   logout: () => void
+  setUnits: (units: Units) => Promise<void>
 }
 
 const AuthContext = createContext<AuthCtx | null>(null)
@@ -62,9 +63,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const setUnits = useCallback(async (units: Units) => {
+    const next = await api<User>('/api/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ units }),
+    })
+    setUser(next)
+  }, [])
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({ user, loading, login, register, logout, setUnits }),
+    [user, loading, login, register, logout, setUnits],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

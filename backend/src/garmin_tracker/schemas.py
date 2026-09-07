@@ -2,7 +2,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
 
-from garmin_tracker.models import ActivityCategory, ReviewStatus, SyncStatus
+from garmin_tracker.models import (
+    ActivityCategory,
+    DisplayUnits,
+    ReviewStatus,
+    SyncStatus,
+)
 
 # ----- Auth -----
 
@@ -21,8 +26,13 @@ class UserOut(BaseModel):
     id: str
     email: EmailStr
     timezone: str
+    units: DisplayUnits = DisplayUnits.imperial
 
     model_config = {"from_attributes": True}
+
+
+class UserUpdate(BaseModel):
+    units: DisplayUnits | None = None
 
 
 class TokenOut(BaseModel):
@@ -170,6 +180,7 @@ class PublicShareMeta(BaseModel):
     timezone: str
     # Non-identifying display name (email local-part only)
     owner_display: str
+    units: DisplayUnits = DisplayUnits.imperial
 
 
 # ----- Account -----

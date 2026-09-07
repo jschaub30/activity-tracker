@@ -11,10 +11,13 @@ export const WEEK_SUMMARY_CATEGORIES: ActivityCategory[] = ['run', 'hike', 'stai
 
 export type ReviewStatus = 'pending' | 'confirmed'
 
+export type Units = 'imperial' | 'metric'
+
 export interface User {
   id: string
   email: string
   timezone: string
+  units?: Units
 }
 
 export interface TokenResponse {

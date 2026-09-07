@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import { formatCal, formatFt, formatMi, weekdayLabel } from '../lib/format'
+import { formatCal, weekdayLabel } from '../lib/format'
+import { formatDistance, formatElevation, useUnits } from '../lib/units'
 import type { WeekSummary } from '../types'
 
 export function WeekDetailPage() {
+  const units = useUnits()
   const { weekStart } = useParams<{ weekStart: string }>()
   const [week, setWeek] = useState<WeekSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +35,7 @@ export function WeekDetailPage() {
           <h1>
             {week.week_start} → {week.week_end}
           </h1>
-          <p className="muted">mi/ft: runs, hikes &amp; stairs · calories: all</p>
+
         </div>
       </div>
 
@@ -66,7 +68,8 @@ export function WeekDetailPage() {
                             </span>
                             <span className="act-name">{a.name || 'Activity'}</span>
                             <span className="act-stats">
-                              {formatMi(a.distance_mi)} · {formatFt(a.elevation_ft)} ·{' '}
+                              {formatDistance(a.distance_mi, units)} ·{' '}
+                              {formatElevation(a.elevation_ft, units)} ·{' '}
                               {formatCal(a.calories)}
                             </span>
                           </Link>
@@ -77,12 +80,13 @@ export function WeekDetailPage() {
                 </td>
               ))}
               <td className="totals-col">
-                <div className="total-num">{formatMi(week.totals.distance_mi)}</div>
-                <div className="total-num">{formatFt(week.totals.elevation_ft)}</div>
-                <div className="total-num">{formatCal(week.totals.calories)}</div>
-                <div className="muted small">
-                  mi/ft: runs + hikes + stairs · cal: all activities
+                <div className="total-num">
+                  {formatDistance(week.totals.distance_mi, units)}
                 </div>
+                <div className="total-num">
+                  {formatElevation(week.totals.elevation_ft, units)}
+                </div>
+                <div className="total-num">{formatCal(week.totals.calories)}</div>
               </td>
             </tr>
           </tbody>

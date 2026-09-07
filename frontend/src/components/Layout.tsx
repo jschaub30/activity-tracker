@@ -15,7 +15,7 @@ export function Layout() {
         </Link>
         {user && (
           <nav className="nav">
-            <NavLink to="/">Week</NavLink>
+            <NavLink to="/">Weeks</NavLink>
             <NavLink to="/charts">Charts</NavLink>
             <NavLink to="/settings">Settings</NavLink>
             <span className="user-email">{user.email}</span>
@@ -31,7 +31,7 @@ export function Layout() {
           {sync?.activities_fetched
             ? ` — ${sync.activities_fetched} fetched`
             : '…'}
-          . Week and charts update when it finishes.
+          . Weeks and charts update when it finishes.
         </div>
       )}
       <main className="main">

@@ -89,6 +89,15 @@ def test_delete_all_data():
         me = client.get("/api/auth/me", headers=headers)
         assert me.status_code == 200
         assert me.json()["email"] == email
+        assert me.json()["units"] == "imperial"
+
+        patched = client.patch(
+            "/api/auth/me",
+            headers=headers,
+            json={"units": "metric"},
+        )
+        assert patched.status_code == 200
+        assert patched.json()["units"] == "metric"
 
 
 def test_delete_all_data_blocked_while_sync_running():

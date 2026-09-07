@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../lib/auth'
 import { useSync } from '../lib/sync'
 import type { DeleteDataResult, GarminStatus, ShareLink } from '../types'
 
@@ -16,6 +17,7 @@ const GARMIN_CREDENTIALS_DOC =
   'https://github.com/jschaub30/activity-tracker/blob/main/docs/garmin-credentials.md'
 
 export function SettingsPage() {
+  const { user, setUnits } = useAuth()
   const { sync, refresh: refreshSync, startSync } = useSync()
   const [status, setStatus] = useState<GarminStatus | null>(null)
   const [shares, setShares] = useState<ShareLink[]>([])
@@ -202,6 +204,31 @@ export function SettingsPage() {
 
       {error && <p className="error">{error}</p>}
       {message && <p className="banner">{message}</p>}
+
+      <section className="card">
+        <h2>Units</h2>
+        <p className="muted small">Distance and elevation on Weeks and Charts.</p>
+        <div className="unit-choices">
+          <label>
+            <input
+              type="radio"
+              name="units"
+              checked={(user?.units ?? 'imperial') === 'imperial'}
+              onChange={() => void setUnits('imperial')}
+            />
+            Miles and feet
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="units"
+              checked={user?.units === 'metric'}
+              onChange={() => void setUnits('metric')}
+            />
+            Kilometers and meters
+          </label>
+        </div>
+      </section>
 
       <section className="card">
         <h2>Share link (read-only)</h2>

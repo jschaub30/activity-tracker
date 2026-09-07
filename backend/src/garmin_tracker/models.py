@@ -45,12 +45,18 @@ class SyncStatus(StrEnum):
     failed = "failed"
 
 
+class DisplayUnits(StrEnum):
+    imperial = "imperial"  # miles / feet
+    metric = "metric"  # kilometers / meters
+
+
 @dataclass
 class User:
     id: str
     email: str
     password_hash: str
     timezone: str = "America/Denver"
+    units: DisplayUnits = DisplayUnits.imperial
     created_at: datetime = field(default_factory=utcnow)
 
 

@@ -13,6 +13,7 @@ from garmin_tracker.config import get_settings
 from garmin_tracker.models import (
     Activity,
     ActivityCategory,
+    DisplayUnits,
     GarminSession,
     ReviewStatus,
     ShareLink,
@@ -70,6 +71,7 @@ def _user_from_item(item: dict[str, Any]) -> User:
         email=item["email"],
         password_hash=item["password_hash"],
         timezone=item.get("timezone") or "America/Denver",
+        units=DisplayUnits(item.get("units") or DisplayUnits.imperial),
         created_at=parse_dt(item.get("created_at")) or utcnow(),
     )
 
@@ -172,7 +174,11 @@ def create_user(user: User) -> User:
         if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
             raise ValueError("Email already registered") from exc
         raise
-    tbl.put_item(
+    return put_user(user)
+
+
+def put_user(user: User) -> User:
+    table().put_item(
         Item=to_ddb(
             {
                 "pk": user_pk(user.id),
@@ -181,6 +187,7 @@ def create_user(user: User) -> User:
                 "email": user.email,
                 "password_hash": user.password_hash,
                 "timezone": user.timezone,
+                "units": user.units,
                 "created_at": user.created_at,
             }
         )

@@ -34,6 +34,7 @@ def public_meta(token: str) -> PublicShareMeta:
         label=link.label,
         timezone=user.timezone or "America/Denver",
         owner_display=_owner_display(user.email),
+        units=user.units,
     )
 
 

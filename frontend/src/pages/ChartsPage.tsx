@@ -10,15 +10,24 @@ import {
   YAxis,
 } from 'recharts'
 import { api } from '../api/client'
-import { formatCal, formatFt, formatMi } from '../lib/format'
+import { formatCal } from '../lib/format'
+import {
+  distanceChartValue,
+  distanceUnitLabel,
+  elevationChartValue,
+  elevationUnitLabel,
+  formatDistance,
+  formatElevation,
+  useUnits,
+} from '../lib/units'
 import { useReloadWhenSyncFinishes } from '../lib/sync'
 import type { WeeksList } from '../types'
 
 interface ChartPoint {
   weekStart: string
   label: string
-  distance_mi: number
-  elevation_ft: number
+  distance: number
+  elevation: number
   calories: number
 }
 
@@ -93,6 +102,7 @@ export function ChartsPage({
   titleSuffix?: string
 } = {}) {
   const readOnly = Boolean(shareToken)
+  const units = useUnits()
   const [data, setData] = useState<WeeksList | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -123,22 +133,22 @@ export function ChartsPage({
       .map((w) => ({
         weekStart: w.week_start,
         label: weekLabel(w.week_start),
-        distance_mi: w.totals.distance_mi,
-        elevation_ft: w.totals.elevation_ft,
+        distance: distanceChartValue(w.totals.distance_mi, units),
+        elevation: elevationChartValue(w.totals.elevation_ft, units),
         calories: w.totals.calories,
       }))
-  }, [data])
+  }, [data, units])
 
   const yearTotals = useMemo(() => {
-    return points.reduce(
-      (acc, p) => ({
-        distance_mi: acc.distance_mi + p.distance_mi,
-        elevation_ft: acc.elevation_ft + p.elevation_ft,
-        calories: acc.calories + p.calories,
+    return (data?.weeks ?? []).reduce(
+      (acc, w) => ({
+        distance_mi: acc.distance_mi + w.totals.distance_mi,
+        elevation_ft: acc.elevation_ft + w.totals.elevation_ft,
+        calories: acc.calories + w.totals.calories,
       }),
       { distance_mi: 0, elevation_ft: 0, calories: 0 },
     )
-  }, [points])
+  }, [data])
 
   if (loading) return <p>Loading charts…</p>
   if (error) return <p className="error">{error}</p>
@@ -149,22 +159,22 @@ export function ChartsPage({
       <div className="week-header">
         <div>
           <h1>Year charts{titleSuffix ? ` · ${titleSuffix}` : ''}</h1>
-          <p className="muted">
-            Weekly totals · past 52 weeks · mi/ft: runs, hikes &amp; stairs ·
-            calories: all
-            {readOnly ? ' · read-only' : ''}
-          </p>
+          <p className="muted">Weekly totals</p>
         </div>
       </div>
 
       <div className="stat-grid year-totals">
         <div className="stat">
           <div className="stat-label">52-week distance</div>
-          <div className="stat-value">{formatMi(yearTotals.distance_mi)}</div>
+          <div className="stat-value">
+            {formatDistance(yearTotals.distance_mi, units)}
+          </div>
         </div>
         <div className="stat">
           <div className="stat-label">52-week elevation</div>
-          <div className="stat-value">{formatFt(yearTotals.elevation_ft)}</div>
+          <div className="stat-value">
+            {formatElevation(yearTotals.elevation_ft, units)}
+          </div>
         </div>
         <div className="stat">
           <div className="stat-label">52-week calories</div>
@@ -173,20 +183,26 @@ export function ChartsPage({
       </div>
 
       <MetricChart
-        title="Distance (mi)"
+        title={`Distance (${distanceUnitLabel(units)})`}
         data={points}
-        dataKey="distance_mi"
+        dataKey="distance"
         color="#3d9cf0"
         formatY={(n) => (n >= 10 ? n.toFixed(0) : n.toFixed(1))}
-        formatTip={(n) => formatMi(n)}
+        formatTip={(n) =>
+          units === 'metric' ? `${n.toFixed(2)} km` : `${n.toFixed(2)} mi`
+        }
       />
       <MetricChart
-        title="Elevation (ft)"
+        title={`Elevation (${elevationUnitLabel(units)})`}
         data={points}
-        dataKey="elevation_ft"
+        dataKey="elevation"
         color="#7fd99a"
         formatY={(n) => Math.round(n).toLocaleString()}
-        formatTip={(n) => formatFt(n)}
+        formatTip={(n) =>
+          units === 'metric'
+            ? `${Math.round(n).toLocaleString()} m`
+            : `${Math.round(n).toLocaleString()} ft`
+        }
       />
       <MetricChart
         title="Calories"

@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 from garmin_tracker.auth import create_access_token, hash_password, verify_password
 from garmin_tracker.deps import CurrentUser
 from garmin_tracker.models import User, new_id
-from garmin_tracker.schemas import TokenOut, UserCreate, UserLogin, UserOut
+from garmin_tracker.schemas import TokenOut, UserCreate, UserLogin, UserOut, UserUpdate
 from garmin_tracker.store import repo
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -39,4 +39,12 @@ def login(body: UserLogin) -> TokenOut:
 
 @router.get("/me", response_model=UserOut)
 def me(user: CurrentUser) -> UserOut:
+    return UserOut.model_validate(user)
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(body: UserUpdate, user: CurrentUser) -> UserOut:
+    if body.units is not None:
+        user.units = body.units
+        repo.put_user(user)
     return UserOut.model_validate(user)

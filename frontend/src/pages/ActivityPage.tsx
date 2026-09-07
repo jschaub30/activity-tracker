@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import { formatDuration, formatFt, formatMi } from '../lib/format'
+import { formatDuration } from '../lib/format'
+import { formatDistance, formatElevation, useUnits } from '../lib/units'
 import type { Activity, ActivityCategory } from '../types'
 
 const CATEGORIES: ActivityCategory[] = [
@@ -14,6 +15,7 @@ const CATEGORIES: ActivityCategory[] = [
 ]
 
 export function ActivityPage() {
+  const units = useUnits()
   const { id } = useParams<{ id: string }>()
   const [activity, setActivity] = useState<Activity | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -65,11 +67,15 @@ export function ActivityPage() {
           <>
             <div className="stat">
               <div className="stat-label">Distance</div>
-              <div className="stat-value">{formatMi(activity.distance_mi)}</div>
+              <div className="stat-value">
+                {formatDistance(activity.distance_mi, units)}
+              </div>
             </div>
             <div className="stat">
               <div className="stat-label">Elevation gain</div>
-              <div className="stat-value">{formatFt(activity.elevation_ft)}</div>
+              <div className="stat-value">
+                {formatElevation(activity.elevation_ft, units)}
+              </div>
             </div>
           </>
         ) : null}
